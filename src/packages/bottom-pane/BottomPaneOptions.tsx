@@ -1,13 +1,14 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useTrafficListContext } from "../main-content/context/TrafficList";
 import { BottomPaneMode, useBottomPaneContext, builtinMatchers } from "@src/context/BottomPaneContext";
 import { FiSearch } from "react-icons/fi";
 import { BsPinAngleFill } from "react-icons/bs";
 import { twMerge } from "tailwind-merge";
-import { useViewerContext, ViewerMatcher } from "@src/context/ViewerContext";
+import { useViewerContext } from "@src/context/ViewerContext";
 import { useAnalytics } from "@src/context/AnalyticsProvider";
 import { useSettingsContext } from "@src/context/SettingsProvider";
 import { useAppProvider } from "@src/packages/app-env";
+import { SmartViewerMatching } from "./SmartViewerMatching";
 
 interface ViewerOption {
   id: string;
@@ -39,103 +40,29 @@ export const BottomPaneOptions = () => {
     }
   }, [selections, setSelectionType]);
 
+  const matchingRef = useRef<SmartViewerMatching | null>(null);
+  const cancelRef = useRef(false);
+
   useEffect(() => {
     const traffic = selections.firstSelected;
     if (!traffic) return;
 
     const trafficId = String(traffic.id);
-    console.log("trafficId", trafficId);
-    console.log("lastMatchedId", lastMatchedId);
-    console.log("trafficId !== lastMatchedId", trafficId !== lastMatchedId);
     if (trafficId !== lastMatchedId) {
       setLastMatchedId(trafficId);
 
       if (smartViewerMatch) {
+        cancelRef.current = true;
+
+        const matcher = new SmartViewerMatching(provider, builtinMatchers, viewers);
+        matchingRef.current = matcher;
         let isCancelled = false;
-        console.log("smartViewerMatch", smartViewerMatch);
 
         (async () => {
-          const decoder = new TextDecoder();
-          const normalizeHeaders = (headers: any) => {
-            if (Array.isArray(headers)) return headers.reduce((acc: any, h: any) => ({ ...acc, [h.key || h.name]: h.value }), {});
-            return headers || {};
-          };
-
-          const readRequestHeaders = async () => normalizeHeaders((await provider.getRequestPairData(trafficId))?.headers);
-          const readRequestBody = async () => {
-            const body = (await provider.getRequestPairData(trafficId))?.body;
-            if (!body) return "";
-            return (body instanceof Uint8Array || Array.isArray(body)) ? decoder.decode(new Uint8Array(body)) : body;
-          };
-          const readResponseHeaders = async () => normalizeHeaders((await provider.getResponsePairData(trafficId))?.headers);
-          const readResponseBody = async () => {
-            const body = (await provider.getResponsePairData(trafficId))?.body;
-            if (!body) return "";
-            return (body instanceof Uint8Array || Array.isArray(body)) ? decoder.decode(new Uint8Array(body)) : body;
-          };
-          const getHeader = (headers: any[], name: string) => headers?.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
-
-          let bestModeId = "request_response";
-          let bestScore = 0;
-
-          const updateBest = (modeId: string, score: number) => {
-            if (score > bestScore) {
-              bestScore = score;
-              bestModeId = modeId;
-            }
-          };
-
-          const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
-
-          const evaluateMatcher = async (matcher: ViewerMatcher, traffic: any): Promise<boolean> => {
-            if (matcher.glob) {
-              const url = traffic.url || traffic.uri || "";
-              const pattern = matcher.glob;
-              const regex = new RegExp('^' + pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')).join('.*') + '$', 'i');
-              if (regex.test(url) || url.includes(pattern)) return true;
-            }
-            if (matcher.js && matcher.js.trim() !== "") {
-              try {
-                const userJs = matcher.js;
-                const src = `return (async () => { try { ${userJs} } catch(e) { return false; } })();`;
-                const fn = new AsyncFunction('traffic', 'readRequestHeaders', 'readRequestBody', 'readResponseHeaders', 'readResponseBody', 'getHeader', src);
-                return !!(await fn(traffic, readRequestHeaders, readRequestBody, readResponseHeaders, readResponseBody, getHeader));
-              } catch {
-                return false;
-              }
-            }
-            return false;
-          };
-
-          const scoreMode = async (matchers: ViewerMatcher[], traffic: any): Promise<number> => {
-            const results = await Promise.all(matchers.map(m => evaluateMatcher(m, traffic)));
-            return results.filter(Boolean).length;
-          };
-
-          const builtinPromises = Object.entries(builtinMatchers).map(async ([modeId, matchers]) => {
-            const score = await scoreMode(matchers, traffic);
-            return { modeId, score };
-          });
-
-          const customPromises = viewers.map(async (viewer) => {
-            try {
-              const content = JSON.parse(viewer.content);
-              if (content.matchers && Array.isArray(content.matchers)) {
-                const score = await scoreMode(content.matchers, traffic);
-                return { modeId: viewer.id, score };
-              }
-            } catch { }
-            return { modeId: viewer.id, score: 0 };
-          });
-
-          const allResults = await Promise.all([...builtinPromises, ...customPromises]);
-          if (isCancelled) return;
-
-          const newScores: Record<string, number> = {};
-          for (const { modeId, score } of allResults) {
-            if (score > 0) newScores[modeId] = score;
+          const scores = await matcher.matchTraffic(trafficId, traffic);
+          if (!isCancelled) {
+            setViewerScores(scores);
           }
-          setViewerScores(newScores);
         })();
 
         return () => { isCancelled = true; };
