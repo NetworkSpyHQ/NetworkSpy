@@ -17,6 +17,8 @@ pub struct ProxySettings {
     pub device_id: String,
     #[serde(default = "default_autosave")]
     pub autosave: bool,
+    #[serde(default)]
+    pub pinned_bottom_pane_modes: Vec<String>,
 }
 
 fn default_port() -> u16 { 3001 }
@@ -31,6 +33,7 @@ impl Default for ProxySettings {
             mcp_http_port: 3001,
             device_id: "".to_string(),
             autosave: true,
+            pinned_bottom_pane_modes: vec![],
         }
     }
 }

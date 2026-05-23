@@ -43,6 +43,8 @@ interface SettingsContextInterface {
   setBottomPaneTabPosition: (position: 'top' | 'bottom') => void;
   autosave: boolean;
   setAutosave: (enabled: boolean) => void;
+  pinnedBottomPaneModes: string[];
+  setPinnedBottomPaneModes: (modes: string[]) => void;
 }
 
 
@@ -78,7 +80,9 @@ export const SettingsContext = createContext<SettingsContextInterface>({
   bottomPaneTabPosition: 'top',
   setBottomPaneTabPosition: () => { },
   autosave: true,
-  setAutosave: () => { }
+  setAutosave: () => { },
+  pinnedBottomPaneModes: [],
+  setPinnedBottomPaneModes: () => { }
 });
 
 
@@ -114,6 +118,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return localStorage.getItem("ns_start_proxy_on_launch") !== "false";
   });
   const [autosave, setAutosave] = useState(true);
+  const [pinnedBottomPaneModes, setPinnedBottomPaneModes] = useState<string[]>([]);
   const [bottomPaneTabPosition, setBottomPaneTabPosition] = useState<'top' | 'bottom'>(() => {
     return (localStorage.getItem("ns_bottom_pane_tab_position") as 'top' | 'bottom') || "top";
   });
@@ -181,6 +186,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       mcp_http_port: number;
       license_key: string;
       autosave: boolean;
+      pinned_bottom_pane_modes: string[];
     }>("get_proxy_settings")
       .then((settings) => {
         if (settings) {
@@ -189,6 +195,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setMcpHttpEnabled(settings.mcp_http_enabled);
           setMcpHttpPort(settings.mcp_http_port);
           setAutosave(settings.autosave);
+          const modes = settings.pinned_bottom_pane_modes || [];
+          if (modes.length === 0) {
+            try {
+              const legacy = JSON.parse(localStorage.getItem("pinned-bottom-pane-modes") || "[]");
+              if (legacy.length > 0) {
+                setPinnedBottomPaneModes(legacy);
+                localStorage.removeItem("pinned-bottom-pane-modes");
+              } else {
+                setPinnedBottomPaneModes([]);
+              }
+            } catch {
+              setPinnedBottomPaneModes([]);
+            }
+          } else {
+            setPinnedBottomPaneModes(modes);
+          }
 
           // Try silent verify (uses keychain on backend)
           verifyLicense(null).catch(() => { });
@@ -242,10 +264,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         mcp_stdio_enabled: mcpStdioEnabled,
         mcp_http_enabled: mcpHttpEnabled,
         mcp_http_port: mcpHttpPort,
-        autosave: autosave
+        autosave: autosave,
+        pinned_bottom_pane_modes: pinnedBottomPaneModes
       }
     }).catch(console.error);
-  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, autosave, isLoaded]);
+  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, autosave, pinnedBottomPaneModes, isLoaded]);
 
   return (
     <SettingsContext.Provider
@@ -282,6 +305,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setBottomPaneTabPosition,
         autosave,
         setAutosave,
+        pinnedBottomPaneModes,
+        setPinnedBottomPaneModes,
       }}>
 
       {children}

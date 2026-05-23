@@ -27,17 +27,7 @@ export const BottomPaneOptions = () => {
   const [viewerScores, setViewerScores] = useState<Record<string, number>>({});
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [pinnedModes, setPinnedModes] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("pinned-bottom-pane-modes") || "[]");
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem("pinned-bottom-pane-modes", JSON.stringify(pinnedModes));
-  }, [pinnedModes]);
+  const { pinnedBottomPaneModes: pinnedModes, setPinnedBottomPaneModes: setPinnedModes } = useSettingsContext();
 
   useEffect(() => {
     if (!selections.firstSelected) {
@@ -174,9 +164,11 @@ export const BottomPaneOptions = () => {
 
   const togglePin = (modeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setPinnedModes(prev =>
-      prev.includes(modeId) ? prev.filter(m => m !== modeId) : [...prev, modeId]
-    );
+    if (pinnedModes.includes(modeId)) {
+      setPinnedModes(pinnedModes.filter(m => m !== modeId));
+    } else {
+      setPinnedModes([...pinnedModes, modeId]);
+    }
   };
 
   const optionsBySelection: Record<string, ViewerOption[]> = {
