@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { LeftSidebar } from "./packages/sidebar/LeftSidebar";
 import { ProStatusDialog } from "./packages/sidebar/ProStatusDialog";
 import { StatusInfoDialog } from "./packages/ui/StatusInfoDialog";
-import { TitleBar } from "./packages/ui/TitleBar";
+import { TitleBarTraffic, TitleBarViewerBuilder, TitleBarSetting } from "./packages/ui/TitleBar";
 
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -29,7 +29,15 @@ export default function Layout() {
 
   const location = useLocation();
   const isTrafficList = location.pathname === "/";
-  const showTitleBar = isTrafficList || !!customContent;
+  const isSettings = location.pathname === "/settings";
+  const showTitleBar = isTrafficList || isSettings || !!customContent;
+
+  const renderTitleBar = () => {
+    if (!!customContent) return <TitleBarViewerBuilder />;
+    if (isTrafficList) return <TitleBarTraffic />;
+    if (isSettings) return <TitleBarSetting />;
+    return null;
+  };
 
   return (
     <div className={twMerge(
@@ -39,7 +47,7 @@ export default function Layout() {
 
 
       {showTitleBar ? (
-        <TitleBar />
+        renderTitleBar()
       ) : (
         /* Ghost TitleBar for Mac to prevent overlapping native buttons */
         isMac && (
