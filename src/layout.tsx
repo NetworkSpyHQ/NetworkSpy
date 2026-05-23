@@ -45,11 +45,11 @@ export default function Layout() {
 
   return (
     <div className={twMerge(
-      "flex flex-col w-screen h-screen overflow-hidden rounded-[12px] border border-white/5 shadow-2xl",
+      "flex flex-col w-screen h-screen overflow-hidden border border-white/5 shadow-2xl",
       isMainWindow ? "bg-zinc-950/70 backdrop-blur-3xl" : "bg-black/90 backdrop-blur-2xl"
     )}>
 
-      {renderTitleBar()}
+      {isMainWindow && renderTitleBar()}
 
       <div id="main-layout" className="flex flex-row flex-grow h-0 min-h-0 overflow-hidden">
         {isMainWindow && <LeftSidebar />}
