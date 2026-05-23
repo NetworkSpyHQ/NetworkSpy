@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { LeftSidebar } from "./packages/sidebar/LeftSidebar";
 import { ProStatusDialog } from "./packages/sidebar/ProStatusDialog";
 import { StatusInfoDialog } from "./packages/ui/StatusInfoDialog";
-import { TitleBarTraffic, TitleBarViewerBuilder, TitleBarSetting } from "./packages/ui/TitleBar";
+import { TitleBarTraffic, TitleBarViewerBuilder, TitleBarViewerList, TitleBarSetting } from "./packages/ui/TitleBar";
 
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -30,11 +30,13 @@ export default function Layout() {
   const location = useLocation();
   const isTrafficList = location.pathname === "/";
   const isSettings = location.pathname === "/settings";
-  const showTitleBar = isTrafficList || isSettings || !!customContent;
+  const isViewerList = location.pathname === "/viewers";
+  const showTitleBar = isTrafficList || isSettings || isViewerList || !!customContent;
 
   const renderTitleBar = () => {
     if (!!customContent) return <TitleBarViewerBuilder />;
     if (isTrafficList) return <TitleBarTraffic />;
+    if (isViewerList) return <TitleBarViewerList />;
     if (isSettings) return <TitleBarSetting />;
     return null;
   };
