@@ -214,7 +214,7 @@ export const useViewerBuilderState = (initialViewer: Viewer, autosave: boolean =
             }
         };
         setIsSaving(true);
-        await saveViewer(viewerName || initialViewer.name, JSON.stringify(content), initialViewer.id, initialViewer.folderId);
+        await saveViewer(viewerName ?? initialViewer.name, JSON.stringify(content), initialViewer.id, initialViewer.folderId);
         setIsSaving(false);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -244,7 +244,7 @@ export const useViewerBuilderState = (initialViewer: Viewer, autosave: boolean =
                     gridGap: gridGap ?? 48
                 }
             };
-            saveViewer(viewerName || initialViewer.name, JSON.stringify(content), initialViewer.id, initialViewer.folderId);
+            saveViewer(viewerName ?? initialViewer.name, JSON.stringify(content), initialViewer.id, initialViewer.folderId);
         }, 2000);
 
         return () => {
@@ -297,7 +297,7 @@ export const useViewerBuilderState = (initialViewer: Viewer, autosave: boolean =
     };
 
     return {
-        viewerName: viewerName || initialViewer.name, setViewerName,
+        viewerName: viewerName ?? initialViewer.name, setViewerName,
         isEditingName, setIsEditingName,
         blocks: blocks || [], setBlocks,
         matchers: matchers || [], setMatchers,
