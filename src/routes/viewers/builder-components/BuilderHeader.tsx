@@ -20,6 +20,7 @@ interface BuilderHeaderProps {
     viewMode: 'preview' | 'source' | 'json';
     setViewMode: (mode: 'preview' | 'source' | 'json') => void;
     onBack?: () => void;
+    autosave?: boolean;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
@@ -28,7 +29,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     isAiAssistantVisible, setIsAiAssistantVisible,
     handleSave, isSaving = false, saveSuccess = false,
     viewMode, setViewMode,
-    onBack
+    onBack,
+    autosave = true
 }) => {
     return (
         <div className="flex items-center gap-2 h-full flex-1">
@@ -43,26 +45,28 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                     </button>
                 )}
 
-                <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className={twMerge(
-                        "flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-bold transition-all active:scale-95 border border-white/10 mr-2",
-                        saveSuccess 
-                            ? "bg-emerald-600 text-white" 
-                            : "bg-blue-600 hover:bg-blue-500 text-white",
-                        isSaving ? "opacity-50 cursor-wait" : ""
-                    )}
-                >
-                    {isSaving ? (
-                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : saveSuccess ? (
-                        <FiCheck size={12} />
-                    ) : (
-                        <FiSave size={12} />
-                    )}
-                    {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
-                </button>
+                {!autosave && (
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className={twMerge(
+                            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-bold transition-all active:scale-95 border border-white/10 mr-2",
+                            saveSuccess 
+                                ? "bg-emerald-600 text-white" 
+                                : "bg-blue-600 hover:bg-blue-500 text-white",
+                            isSaving ? "opacity-50 cursor-wait" : ""
+                        )}
+                    >
+                        {isSaving ? (
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : saveSuccess ? (
+                            <FiCheck size={12} />
+                        ) : (
+                            <FiSave size={12} />
+                        )}
+                        {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
+                    </button>
+                )}
                 
                 <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-blue-500/20 border border-blue-500/20 flex items-center justify-center text-blue-500 shadow-sm">

@@ -3,6 +3,7 @@ import { Viewer, ViewerBlock } from "@src/context/ViewerContext";
 import { useViewerBuilderState } from "./builder-hooks/useViewerBuilderState";
 import { useAtom } from "jotai";
 import { titleBarContentAtom } from "@src/utils/trafficAtoms";
+import { useSettingsContext } from "@src/context/SettingsProvider";
 
 // Components
 import { BuilderHeader } from "./builder-components/BuilderHeader";
@@ -20,6 +21,8 @@ interface ViewerBuilderProps {
 }
 
 const ViewerBuilder: React.FC<ViewerBuilderProps> = ({ viewer: initialViewer, onBack }) => {
+    const { autosave } = useSettingsContext();
+
     const {
         viewerName, setViewerName,
         isEditingName, setIsEditingName,
@@ -57,7 +60,7 @@ const ViewerBuilder: React.FC<ViewerBuilderProps> = ({ viewer: initialViewer, on
         isSaving,
         saveSuccess,
         isSessionLoading
-    } = useViewerBuilderState(initialViewer);
+    } = useViewerBuilderState(initialViewer, autosave);
 
     const [, setTitleBarContent] = useAtom(titleBarContentAtom);
 
@@ -80,6 +83,7 @@ const ViewerBuilder: React.FC<ViewerBuilderProps> = ({ viewer: initialViewer, on
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 onBack={onBack}
+                autosave={autosave}
             />
         );
         return () => setTitleBarContent(null);
@@ -87,7 +91,8 @@ const ViewerBuilder: React.FC<ViewerBuilderProps> = ({ viewer: initialViewer, on
         viewerName, isEditingName, isToolboxVisible, 
         isAiAssistantVisible, viewMode, blocks, testResults,
         onBack, handleSave, setViewerName, setIsEditingName, 
-        setIsToolboxVisible, setIsAiAssistantVisible, setViewMode, setTitleBarContent
+        setIsToolboxVisible, setIsAiAssistantVisible, setViewMode, setTitleBarContent,
+        autosave
     ]);
 
     const mainContent = () => {

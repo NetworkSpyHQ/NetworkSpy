@@ -41,6 +41,8 @@ interface SettingsContextInterface {
   setStartProxyOnLaunch: (enabled: boolean) => void;
   bottomPaneTabPosition: 'top' | 'bottom';
   setBottomPaneTabPosition: (position: 'top' | 'bottom') => void;
+  autosave: boolean;
+  setAutosave: (enabled: boolean) => void;
 }
 
 
@@ -74,7 +76,9 @@ export const SettingsContext = createContext<SettingsContextInterface>({
   startProxyOnLaunch: true,
   setStartProxyOnLaunch: () => { },
   bottomPaneTabPosition: 'top',
-  setBottomPaneTabPosition: () => { }
+  setBottomPaneTabPosition: () => { },
+  autosave: true,
+  setAutosave: () => { }
 });
 
 
@@ -109,6 +113,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [startProxyOnLaunch, setStartProxyOnLaunch] = useState(() => {
     return localStorage.getItem("ns_start_proxy_on_launch") !== "false";
   });
+  const [autosave, setAutosave] = useState(true);
   const [bottomPaneTabPosition, setBottomPaneTabPosition] = useState<'top' | 'bottom'>(() => {
     return (localStorage.getItem("ns_bottom_pane_tab_position") as 'top' | 'bottom') || "top";
   });
@@ -175,6 +180,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       mcp_http_enabled: boolean;
       mcp_http_port: number;
       license_key: string;
+      autosave: boolean;
     }>("get_proxy_settings")
       .then((settings) => {
         if (settings) {
@@ -182,6 +188,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setMcpStdioEnabled(settings.mcp_stdio_enabled);
           setMcpHttpEnabled(settings.mcp_http_enabled);
           setMcpHttpPort(settings.mcp_http_port);
+          setAutosave(settings.autosave);
 
           // Try silent verify (uses keychain on backend)
           verifyLicense(null).catch(() => { });
@@ -234,10 +241,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         stream_certificate_logs: streamCertificateLogs,
         mcp_stdio_enabled: mcpStdioEnabled,
         mcp_http_enabled: mcpHttpEnabled,
-        mcp_http_port: mcpHttpPort
+        mcp_http_port: mcpHttpPort,
+        autosave: autosave
       }
     }).catch(console.error);
-  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, isLoaded]);
+  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, autosave, isLoaded]);
 
   return (
     <SettingsContext.Provider
@@ -272,6 +280,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setStartProxyOnLaunch,
         bottomPaneTabPosition,
         setBottomPaneTabPosition,
+        autosave,
+        setAutosave,
       }}>
 
       {children}

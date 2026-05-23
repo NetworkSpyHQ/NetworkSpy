@@ -23,7 +23,7 @@ import {
     viewerBuilderGridGapAtom
 } from "@src/utils/viewerBuilderAtoms";
 
-export const useViewerBuilderState = (initialViewer: Viewer) => {
+export const useViewerBuilderState = (initialViewer: Viewer, autosave: boolean = true) => {
     const { saveViewer } = useViewerContext();
     const { trafficList } = useTrafficListContext();
     const { sessions } = useSessionContext();
@@ -219,6 +219,40 @@ export const useViewerBuilderState = (initialViewer: Viewer) => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
     };
+
+    const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (!autosave) return;
+
+        if (autoSaveTimer.current) {
+            clearTimeout(autoSaveTimer.current);
+        }
+
+        autoSaveTimer.current = setTimeout(() => {
+            const content: ViewerContent = {
+                blocks: blocks || [],
+                matchers: matchers || [],
+                previewConfig: {
+                    testSource: testSource || 'live',
+                    selectedSessionId: selectedSessionId || "",
+                    filter: filter || "",
+                    selectedTrafficId: selectedTrafficId || ""
+                },
+                layoutConfig: {
+                    canvasPadding: canvasPadding ?? 48,
+                    gridGap: gridGap ?? 48
+                }
+            };
+            saveViewer(viewerName || initialViewer.name, JSON.stringify(content), initialViewer.id, initialViewer.folderId);
+        }, 2000);
+
+        return () => {
+            if (autoSaveTimer.current) {
+                clearTimeout(autoSaveTimer.current);
+            }
+        };
+    }, [autosave, blocks, matchers, viewerName, testSource, selectedSessionId, selectedTrafficId, filter, canvasPadding, gridGap]);
 
     const addBlock = (type: ViewerBlock['type']) => {
         const newBlock: ViewerBlock = {
