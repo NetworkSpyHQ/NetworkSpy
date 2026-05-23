@@ -19,6 +19,14 @@ html, body, #root {
 
 
 @layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .animate-button-pulse {
     animation: button-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
