@@ -380,28 +380,7 @@ fn main() {
                 })
                 .build(app_handle)?;
 
-            let window_file_submenu = create_file_submenu(app_handle, app_name)?;
-            let window_edit_submenu = create_edit_submenu(app_handle)?;
-            let window_view_submenu = create_view_submenu(app_handle)?;
-            let window_traffic_submenu = create_traffic_submenu(app_handle)?;
-            let window_tools_submenu = create_tools_submenu(app_handle)?;
-            let window_help_submenu = create_help_submenu(app_handle)?;
- 
-            let main_window_menu = MenuBuilder::new(app_handle)
-                .item(&window_file_submenu)
-                .item(&window_edit_submenu)
-                .item(&window_view_submenu)
-                .item(&window_traffic_submenu)
-                .item(&window_tools_submenu)
-                .item(&window_help_submenu)
-                .build()?;
-
-            // Set the menu ONLY on the main window
-            if let Some(main_window) = app_handle.get_webview_window("main") {
-                let _ = main_window.set_menu(main_window_menu);
-            }
-
-            // Global Menu Event Handler for both Tray and Window Menu
+            // Global Menu Event Handler for both Tray and macOS Window Menu
             let app_handle_menu = app_handle.clone();
             app_handle.on_menu_event(move |_app, event| {
                 match event.id.as_ref() {
