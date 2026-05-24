@@ -153,30 +153,27 @@ fn main() {
             }
 
 
-            // 1. Global Application Menu Setup (macOS)
+            // 1. Global Application Menu Setup (macOS only — Windows/Linux use per-window menus)
+            #[cfg(target_os = "macos")]
+            {
+                let file_submenu = create_file_submenu(app, app_name)?;
+                let edit_submenu = create_edit_submenu(app)?;
+                let view_submenu = create_view_submenu(app)?;
+                let traffic_submenu = create_traffic_submenu(app)?;
+                let global_tools_submenu = create_tools_submenu(app)?;
+                let help_submenu = create_help_submenu(app)?;
 
+                let global_mac_menu = MenuBuilder::new(app)
+                    .item(&file_submenu)
+                    .item(&edit_submenu)
+                    .item(&view_submenu)
+                    .item(&traffic_submenu)
+                    .item(&global_tools_submenu)
+                    .item(&help_submenu)
+                    .build()?;
 
-            // Tauri menu bindings take explicit ownership over items. 
-            // Because macOS uses a global bar and Windows/Linux uses per-window bars,
-            // we configure two physically separate menu structures to guarantee
-            // they display natively and correctly on all respective OSes.
-            let file_submenu = create_file_submenu(app, app_name)?;
-            let edit_submenu = create_edit_submenu(app)?;
-            let view_submenu = create_view_submenu(app)?;
-            let traffic_submenu = create_traffic_submenu(app)?;
-            let global_tools_submenu = create_tools_submenu(app)?;
-            let help_submenu = create_help_submenu(app)?;
-            
-            let global_mac_menu = MenuBuilder::new(app)
-                .item(&file_submenu)
-                .item(&edit_submenu)
-                .item(&view_submenu)
-                .item(&traffic_submenu)
-                .item(&global_tools_submenu)
-                .item(&help_submenu)
-                .build()?;
-
-            app.set_menu(global_mac_menu)?;
+                app.set_menu(global_mac_menu)?;
+            }
 
             // Event handling is unified below in the global handler
 
