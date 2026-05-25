@@ -33,7 +33,7 @@ use bytes::Bytes;
 use certificate_installer::CertificateInstaller;
 use hyper::{Request, Response, Version};
 use network_spy_proxy::{proxy::Proxy, traffic::TrafficListener};
-use tauri::menu::{Menu, MenuItem, MenuBuilder};
+use tauri::menu::{Menu, MenuItem};
 use async_trait::async_trait;
 use once_cell::sync::OnceCell;
 use proxy_toggle::ProxyToggle;
@@ -62,7 +62,6 @@ use crate::traffic::db::{is_text_content_type, body_to_string};
 
 
 use commands::*;
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 #[cfg(target_os = "macos")]
 use objc::msg_send;
 #[cfg(target_os = "macos")]
@@ -77,6 +76,7 @@ fn main() {
 
     // Use compile-time environment variables (baked into the binary via build.rs)
     // This ensures no .env file is needed at runtime.
+    #[allow(unused_variables)]
     let app_name = env!("APP_NAME");
 
     let _guard = if let Some(dsn) = option_env!("SENTRY_DSN") {
@@ -163,7 +163,7 @@ fn main() {
                 let global_tools_submenu = create_tools_submenu(app)?;
                 let help_submenu = create_help_submenu(app)?;
 
-                let global_mac_menu = MenuBuilder::new(app)
+                let global_mac_menu = tauri::menu::MenuBuilder::new(app)
                     .item(&file_submenu)
                     .item(&edit_submenu)
                     .item(&view_submenu)
@@ -391,31 +391,58 @@ fn main() {
             app_handle.on_menu_event(move |_app, event| {
                 match event.id.as_ref() {
                     "install_cert" | "cert-installer" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "certificate-installer".to_string(), "Certificate Installer".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "certificate-installer".to_string(), "Certificate Installer".to_string());
+                        });
                     }
                     "saved-sessions" | "saved_sessions" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "sessions".to_string(), "Saved Sessions".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "sessions".to_string(), "Saved Sessions".to_string());
+                        });
                     }
                     "traffic-filters" | "traffic_filters" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "filters".to_string(), "Traffic Filters".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "filters".to_string(), "Traffic Filters".to_string());
+                        });
                     }
                     "tools-tag" | "tools_tag" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "tag".to_string(), "Tag Tools".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "tag".to_string(), "Tag Tools".to_string());
+                        });
                     }
                     "proxylist" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "proxylist".to_string(), "Proxy Intercept Rules".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "proxylist".to_string(), "Proxy Intercept Rules".to_string());
+                        });
                     }
                     "breakpoints" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "breakpoint".to_string(), "Traffic Breakpoints".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "breakpoint".to_string(), "Traffic Breakpoints".to_string());
+                        });
                     }
                     "map_local" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "map-local".to_string(), "Map Local Rules".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "map-local".to_string(), "Map Local Rules".to_string());
+                        });
                     }
                     "map_remote" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "map-remote".to_string(), "Map Remote Rules".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "map-remote".to_string(), "Map Remote Rules".to_string());
+                        });
                     }
                     "scripting" => {
-                        let _ = open_new_window_internal(&app_handle_menu, "scripting".to_string(), "Custom Scripting".to_string());
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "scripting".to_string(), "Custom Scripting".to_string());
+                        });
                     }
                     "check_updates" => {
                         let handle = app_handle_menu.clone();

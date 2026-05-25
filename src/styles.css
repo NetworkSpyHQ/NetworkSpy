@@ -8,7 +8,7 @@
 @tailwind utilities;
 
 html, body, #root {
-  background: transparent !important;
+  background: #09090b;
   margin: 0;
   padding: 0;
   overflow: hidden;

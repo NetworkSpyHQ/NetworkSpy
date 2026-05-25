@@ -318,52 +318,91 @@ pub fn uninstall_certificate(app: tauri::AppHandle, state: tauri::State<'_, Mana
 
 pub fn open_new_window_internal(app_handle: &tauri::AppHandle, context: String, title: String) {
     let label = context.split('?').next().unwrap_or(&context).to_string();
-    let _ = tauri::WebviewWindowBuilder::new(
+
+    // If window already exists, focus it instead of creating a duplicate
+    if let Some(window) = app_handle.get_webview_window(&label) {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return;
+    }
+
+    // Build path relative to frontend dist (no leading slash - resolved by Tauri)
+    let url_path = std::path::PathBuf::from(&context);
+
+    match tauri::WebviewWindowBuilder::new(
         app_handle,
         label,
-        tauri::WebviewUrl::App(std::path::PathBuf::from(format!("/{}", context))),
+        tauri::WebviewUrl::App(url_path),
     )
-    .title(title)
+        .title(title.clone())
     .inner_size(1500.0, 700.0)
-    .max_inner_size(1500.0, 700.0)
-    .resizable(false)
-    .build();
+    .resizable(true)
+    .build()
+    {
+        Ok(window) => {
+            let _ = window.show();
+            let _ = window.set_focus();
+            println!("[open_new_window] Created '{}' window for '{}'", title, context);
+        }
+        Err(e) => {
+            eprintln!("[open_new_window] Failed to create window '{}': {}", title, e);
+        }
+    }
 }
 
 #[tauri::command]
-pub fn open_new_window(app_handle: tauri::AppHandle, context: String, title: String) {
+pub async fn open_new_window(app_handle: tauri::AppHandle, context: String, title: String) {
+    // Must be async to avoid WebView2 deadlock on Windows (WebView2 creation requires the main thread event loop).
     open_new_window_internal(&app_handle, context, title);
 }
 
 #[tauri::command]
-pub fn trigger_menu_action(app_handle: tauri::AppHandle, action: String) {
+pub async fn trigger_menu_action(app_handle: tauri::AppHandle, action: String) {
     match action.as_str() {
         "install_cert" | "cert-installer" => {
-            open_new_window_internal(&app_handle, "certificate-installer".into(), "Certificate Installer".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "certificate-installer".into(), "Certificate Installer".into());
+            });
         }
         "saved_sessions" => {
-            open_new_window_internal(&app_handle, "sessions".into(), "Saved Sessions".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "sessions".into(), "Saved Sessions".into());
+            });
         }
         "traffic_filters" => {
-            open_new_window_internal(&app_handle, "filters".into(), "Traffic Filters".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "filters".into(), "Traffic Filters".into());
+            });
         }
         "tools_tag" => {
-            open_new_window_internal(&app_handle, "tag".into(), "Tag Tools".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "tag".into(), "Tag Tools".into());
+            });
         }
         "proxylist" => {
-            open_new_window_internal(&app_handle, "proxylist".into(), "Proxy Intercept Rules".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "proxylist".into(), "Proxy Intercept Rules".into());
+            });
         }
         "breakpoints" => {
-            open_new_window_internal(&app_handle, "breakpoint".into(), "Traffic Breakpoints".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "breakpoint".into(), "Traffic Breakpoints".into());
+            });
         }
         "map_local" => {
-            open_new_window_internal(&app_handle, "map-local".into(), "Map Local Rules".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "map-local".into(), "Map Local Rules".into());
+            });
         }
         "map_remote" => {
-            open_new_window_internal(&app_handle, "map-remote".into(), "Map Remote Rules".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "map-remote".into(), "Map Remote Rules".into());
+            });
         }
         "scripting" => {
-            open_new_window_internal(&app_handle, "scripting".into(), "Custom Scripting".into());
+            let h = app_handle.clone(); tauri::async_runtime::spawn(async move {
+                open_new_window_internal(&h, "scripting".into(), "Custom Scripting".into());
+            });
         }
         "check_updates" => {
             let _ = app_handle.emit("check-for-updates", ());

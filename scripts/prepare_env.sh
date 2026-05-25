@@ -73,11 +73,12 @@ install_age() {
             ;;
         windows)
             if command -v scoop &>/dev/null; then
+                scoop bucket add main 2>/dev/null || true
                 scoop install age
             elif command -v choco &>/dev/null; then
                 choco install age.portable -y
             elif command -v winget &>/dev/null; then
-                winget install age
+                winget install "FiloSottile.age"
             else
                 err "Please install age manually on Windows:"
                 info "  scoop install age        (recommended: https://scoop.sh)"
