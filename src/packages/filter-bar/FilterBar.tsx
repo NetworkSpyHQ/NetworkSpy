@@ -91,7 +91,7 @@ const FilterNodeRenderer = ({
 
           <input
             type='text'
-            className='filter-value-input input input-xs flex-grow rounded bg-[#2a2d2c] border border-zinc-800 text-[11px] focus:outline-none focus:border-blue-500 py-0 h-6'
+            className='filter-value-input input input-xs flex-grow rounded bg-[#2a2d2c] border border-zinc-800 text-[11px] focus:outline-none focus:border-blue-500 py-0 h-6 px-2'
             placeholder={`Search ${node.type}...`}
             value={node.value}
             onChange={(e) => updateNode(node.id, { value: e.target.value })}
@@ -401,7 +401,7 @@ export const FilterBar = () => {
           <input
             type="text"
             placeholder="Search filters..."
-            className="bg-transparent border-none outline-none text-[11px] text-zinc-300 ml-2 w-20 focus:w-32 transition-all duration-300"
+            className="bg-transparent border-none outline-none text-[11px] text-zinc-300 ml-2 px-1 w-20 focus:w-32 transition-all duration-300"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
