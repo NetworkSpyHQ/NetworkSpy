@@ -171,7 +171,7 @@ const FilterNodeRenderer = ({
 };
 
 import { useAtom, useAtomValue } from "jotai";
-import { mainTrafficListSearchAtom, activeTabIdAtom } from "@src/utils/trafficAtoms";
+import { mainTrafficListSearchAtom, activeTabIdAtom, isLicensedAtom } from "@src/utils/trafficAtoms";
 
 const countAllRules = (nodes: FilterNode[]): number => {
   return nodes.reduce((acc, node) => {
@@ -200,6 +200,7 @@ export const FilterBar = () => {
   const activeTabId = useAtomValue(activeTabIdAtom);
   const [searchTerm, setSearchTerm] = useAtom(mainTrafficListSearchAtom(activeTabId));
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const isLicensed = useAtomValue(isLicensedAtom);
 
   React.useEffect(() => {
     if (errorMsg) {
@@ -207,8 +208,6 @@ export const FilterBar = () => {
       return () => clearTimeout(timer);
     }
   }, [errorMsg]);
-
-
 
   const { appPredefined, userPredefined } = React.useMemo(() => {
     const filtered = predefinedFilters.filter(f =>
@@ -221,10 +220,12 @@ export const FilterBar = () => {
   }, [predefinedFilters, searchTerm]);
 
   const addRule = async (parentId: string | null = null) => {
-    const limit = await getLimit('max_filters');
-    if (countAllRules(filters) >= limit) {
-      openUpgradeDialog();
-      return;
+    if (!isLicensed) {
+      const limit = await getLimit('max_filters');
+      if (countAllRules(filters) >= limit) {
+        openUpgradeDialog();
+        return;
+      }
     }
 
     const newRule: FilterRule = {
@@ -256,10 +257,12 @@ export const FilterBar = () => {
   };
 
   const addGroup = async (parentId: string | null = null) => {
-    const limit = await getLimit('max_filters');
-    if (countAllRules(filters) >= limit) {
-      openUpgradeDialog();
-      return;
+    if (!isLicensed) {
+      const limit = await getLimit('max_filters');
+      if (countAllRules(filters) >= limit) {
+        openUpgradeDialog();
+        return;
+      }
     }
 
     const newGroup: FilterGroup = {

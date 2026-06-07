@@ -3,6 +3,8 @@ import { FilterNode, PredefinedFilter, FilterTypes, FilterOperators } from "../m
 import { invoke } from "@tauri-apps/api/core";
 import { useLicense } from "../hooks/useLicense";
 import { useUpgradeDialog } from "./UpgradeContext";
+import { useAtomValue } from "jotai";
+import { isLicensedAtom } from "../utils/trafficAtoms";
 
 interface FilterPresetContextState {
   predefinedFilters: PredefinedFilter[];
@@ -105,6 +107,7 @@ export const FilterPresetProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const { getLimit } = useLicense();
   const { openUpgradeDialog } = useUpgradeDialog();
+  const isLicensed = useAtomValue(isLicensedAtom);
 
   // Load from DB on mount
   useEffect(() => {
@@ -149,14 +152,16 @@ export const FilterPresetProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const addPreset = async (name: string, filters: FilterNode[], description?: string) => {
-    try {
-        const limit = await getLimit('max_filters');
-        if (userFilters.length >= limit) {
-          openUpgradeDialog();
-          return "";
-        }
-    } catch (e) {
-        console.error("Failed to check filter limit", e);
+    if (!isLicensed) {
+      try {
+          const limit = await getLimit('max_filters');
+          if (userFilters.length >= limit) {
+            openUpgradeDialog();
+            return "";
+          }
+      } catch (e) {
+          console.error("Failed to check filter limit", e);
+      }
     }
 
     const newId = `user-${Date.now()}`;

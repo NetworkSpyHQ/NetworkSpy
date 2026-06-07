@@ -10,16 +10,24 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { twMerge } from "tailwind-merge";
 import { useAppUpdater } from "./hooks/useAppUpdater";
 
-import { useAtom } from 'jotai';
-import { titleBarContentAtom, osAtom } from '@src/utils/trafficAtoms';
+import { useAtom, useSetAtom } from 'jotai';
+import { titleBarContentAtom, osAtom, isLicensedAtom } from '@src/utils/trafficAtoms';
+import { useLicense } from '@src/hooks/useLicense';
+import { AppPlan } from '@src/models/Plan';
 
 export default function Layout() {
   useAppUpdater();
   const [customContent] = useAtom(titleBarContentAtom);
   const [, setOs] = useAtom(osAtom);
+  const setIsLicensed = useSetAtom(isLicensedAtom);
+  const { getPlan } = useLicense();
 
   useEffect(() => {
     setOs(platform());
+    getPlan().then(plan => {
+      const appPlan = AppPlan.fromString(plan);
+      setIsLicensed(appPlan?.isPro ?? false);
+    });
   }, []);
   const [isProDialogOpen, setIsProDialogOpen] = useState(false);
   const [isMainWindow] = useState(() => {

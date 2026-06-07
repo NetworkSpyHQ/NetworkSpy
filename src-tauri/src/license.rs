@@ -309,7 +309,8 @@ pub fn license_check_feature(feature: String) -> bool {
     let plan = cache.plan.as_deref().unwrap_or("free");
     let is_personal = plan == "personal";
     let is_pro = plan == "pro";
-    let is_licensed = is_personal || is_pro;
+    let is_lifetime = plan == "lifetime";
+    let is_licensed = is_personal || is_pro || is_lifetime;
 
     // Check dynamic features first if they exist
     if let Some(features) = &cache.features {
@@ -322,7 +323,7 @@ pub fn license_check_feature(feature: String) -> bool {
 
     match feature.as_str() {
         "scripting" | "breakpoints" | "mcp" | "premium" => is_licensed,
-        "custom_viewers" => is_pro,
+        "custom_viewers" => is_pro || is_lifetime,
         _ => false,
     }
 }
@@ -338,7 +339,8 @@ pub fn license_get_limit(limit_name: String) -> i32 {
     let plan = cache.plan.as_deref().unwrap_or("free");
     let is_personal = plan == "personal";
     let is_pro = plan == "pro";
-    let is_licensed = is_personal || is_pro;
+    let is_lifetime = plan == "lifetime";
+    let is_licensed = is_personal || is_pro || is_lifetime;
 
     // Check dynamic features first if they exist
     if let Some(features) = &cache.features {
