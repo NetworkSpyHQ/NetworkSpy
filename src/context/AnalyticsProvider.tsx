@@ -1,5 +1,7 @@
 import React, { ReactNode } from 'react';
 import { PostHogProvider } from '@posthog/react';
+import { getVersion } from '@tauri-apps/api/app';
+import { RUNNING_IN_TAURI } from './TauriProvider';
 
 interface AnalyticsProviderProps {
   children: ReactNode;
@@ -9,6 +11,17 @@ const options = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
   defaults: '2026-01-30',
 } as const;
+
+const PostHogVersionSetter: React.FC = () => {
+  const posthog = usePostHog();
+  React.useEffect(() => {
+    if (!RUNNING_IN_TAURI) return;
+    getVersion().then(version => {
+      posthog?.register({ app_version: version });
+    });
+  }, [posthog]);
+  return null;
+};
 
 const DevIdentifier: React.FC = () => {
   const posthog = usePostHog();
@@ -33,6 +46,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   return (
     <PostHogProvider apiKey={apiKey} options={options}>
+      <PostHogVersionSetter />
       <DevIdentifier />
       {children}
     </PostHogProvider>
