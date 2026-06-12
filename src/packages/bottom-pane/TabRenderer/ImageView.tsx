@@ -17,14 +17,48 @@ export const ImageView = ({ data }: { data: Uint8Array }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [centered, setCentered] = useState(false);
   const dragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const offsetAtDragStart = useRef({ x: 0, y: 0 });
 
+  const centerImage = useCallback(() => {
+    if (!containerRef.current || !imgRef.current) return;
+    const cw = containerRef.current.clientWidth;
+    const ch = containerRef.current.clientHeight;
+    const iw = imgRef.current.naturalWidth;
+    const ih = imgRef.current.naturalHeight;
+    if (iw === 0 || ih === 0) return;
+    setOffset({
+      x: (cw - iw * scale) / 2,
+      y: (ch - ih * scale) / 2,
+    });
+    setCentered(true);
+  }, [scale]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    if (img.complete) {
+      centerImage();
+    } else {
+      img.addEventListener('load', centerImage, { once: true });
+      return () => img.removeEventListener('load', centerImage);
+    }
+  }, [url, centerImage]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(centerImage);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [centerImage]);
+
   const reset = useCallback(() => {
     setScale(1);
-    setOffset({ x: 0, y: 0 });
-  }, []);
+    setCentered(false);
+    centerImage();
+  }, [centerImage]);
 
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -73,11 +107,15 @@ export const ImageView = ({ data }: { data: Uint8Array }) => {
         alt="response"
         className="max-w-full max-h-full"
         style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-          transformOrigin: 'center center',
+          transformOrigin: 'top left',
           transition: dragging.current ? 'none' : 'transform 0.1s ease',
           pointerEvents: 'none',
           userSelect: 'none',
+          opacity: centered ? 1 : 0,
         }}
       />
       <div className="absolute bottom-2 right-2 bg-black/60 text-zinc-300 text-[11px] px-2 py-0.5 rounded font-mono select-none pointer-events-none">

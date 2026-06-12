@@ -4,7 +4,7 @@ import { useTrafficListContext } from "../../../main-content/context/TrafficList
 import { ResponsePairData } from "../../ResponseTab";
 import { ImageView } from "../../TabRenderer/ImageView";
 import { extractImageMeta, ImageMeta } from "../../utils/imageMetadata";
-import { FiInfo, FiChevronDown, FiChevronRight, FiCamera, FiMapPin, FiFileText } from "react-icons/fi";
+import { FiInfo, FiX, FiChevronDown, FiChevronRight, FiCamera, FiMapPin, FiFileText } from "react-icons/fi";
 
 export const ImageViewerMode = () => {
     const { provider } = useAppProvider();
@@ -23,7 +23,6 @@ export const ImageViewerMode = () => {
     useEffect(() => {
         if (!trafficId) return;
         setLoading(true);
-        setShowMeta(false);
         setMeta(null);
         provider.getResponsePairData(trafficId)
             .then((res) => {
@@ -62,7 +61,16 @@ export const ImageViewerMode = () => {
                     {showMeta && meta && (
                         <div className="absolute top-0 right-0 bottom-0 w-72 z-20 bg-zinc-900/95 backdrop-blur-md border-l border-zinc-700/50 overflow-y-auto custom-scrollbar">
                             <div className="p-4 space-y-3">
-                                <h3 className="text-[10px] font-bold text-zinc-500 tracking-widest">IMAGE INFO</h3>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-[10px] font-bold text-zinc-500 tracking-widest">IMAGE INFO</h3>
+                                    <button
+                                        onClick={() => setShowMeta(false)}
+                                        className="p-0.5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                                        title="Close"
+                                    >
+                                        <FiX size={13} />
+                                    </button>
+                                </div>
                                 <CollapseSection
                                     icon={<FiFileText size={11} />}
                                     label="Basic Info"
