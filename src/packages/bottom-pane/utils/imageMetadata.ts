@@ -44,7 +44,6 @@ export async function extractImageMeta(
       icc: false,
       iptc: false,
       ifd1: false,
-      mergeOutput: false,
       sanitize: true,
       translateKeys: true,
       reviveValues: true,
