@@ -1,5 +1,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::process::Command;
+#[cfg(target_os = "macos")]
+use std::io::Write;
+#[cfg(target_os = "macos")]
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ProxyToggle {
@@ -45,12 +49,13 @@ impl ProxyToggle {
     fn turn_on_macos(&self, port: u64) {
         let services = self.get_macos_services();
         let port_s = port.to_string();
-        for service in services {
-            self.shell("/usr/sbin/networksetup", &["-setwebproxy", &service, "127.0.0.1", &port_s]);
-            self.shell("/usr/sbin/networksetup", &["-setsecurewebproxy", &service, "127.0.0.1", &port_s]);
-            self.shell("/usr/sbin/networksetup", &["-setwebproxystate", &service, "on"]);
-            self.shell("/usr/sbin/networksetup", &["-setsecurewebproxystate", &service, "on"]);
+        for service in &services {
+            self.shell("/usr/sbin/networksetup", &["-setwebproxy", service, "127.0.0.1", &port_s]);
+            self.shell("/usr/sbin/networksetup", &["-setsecurewebproxy", service, "127.0.0.1", &port_s]);
+            self.shell("/usr/sbin/networksetup", &["-setwebproxystate", service, "on"]);
+            self.shell("/usr/sbin/networksetup", &["-setsecurewebproxystate", service, "on"]);
         }
+        notify_network_change_macos();
     }
 
     #[cfg(target_os = "macos")]
@@ -60,6 +65,7 @@ impl ProxyToggle {
             self.shell("/usr/sbin/networksetup", &["-setwebproxystate", &service, "off"]);
             self.shell("/usr/sbin/networksetup", &["-setsecurewebproxystate", &service, "off"]);
         }
+        notify_network_change_macos();
     }
 
     #[cfg(target_os = "macos")]
@@ -153,4 +159,87 @@ fn refresh_proxy() {
         InternetSetOptionW(None, INTERNET_OPTION_SETTINGS_CHANGED, None, 0);
         InternetSetOptionW(None, INTERNET_OPTION_REFRESH, None, 0);
     }
+}
+
+#[cfg(target_os = "macos")]
+fn bounce_network_service_macos(services: &[String], wait: Duration) {
+    // Design: briefly disable then re-enable all network services to force the OS network
+    // stack to reset. The idea was that Chrome would drop existing TCP connections and
+    // re-create its NetworkContext, which re-reads system proxy settings at construction
+    // time — picking up the newly-set proxy without needing a browser restart.
+    //
+    // Not used: Chrome's ProxyResolutionService caches proxy config at NetworkContext
+    // creation and ignores subsequent SCDynamicStore/network-change notifications.
+    // Bouncing the service drops connections but Chrome re-establishes them using the
+    // cached "no proxy" resolution — the outcome is identical to what notifications alone
+    // achieve. Kept for reference in case a future Chrome version re-enables dynamic
+    // proxy re-read or if another app benefits from this approach.
+    // Disable all detected network services briefly
+    for service in services {
+        let _ = Command::new("/usr/sbin/networksetup")
+            .args(["-setnetworkserviceenabled", service, "off"])
+            .status();
+    }
+
+    // Wait for connections to be disrupted and Chrome to react
+    std::thread::sleep(wait);
+
+    // Re-enable all detected network services
+    for service in services {
+        let _ = Command::new("/usr/sbin/networksetup")
+            .args(["-setnetworkserviceenabled", service, "on"])
+            .status();
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn notify_network_change_macos() {
+    // 1. Use scutil to list and notify each proxy key in SCDynamicStore directly.
+    //    This calls SCDynamicStoreNotifyValue() — the same mechanism Chrome monitors.
+    let list_output = Command::new("/usr/sbin/scutil")
+        .args(["list", "State:/Network/Service/"])
+        .output();
+
+    let proxy_keys: Vec<String> = if let Ok(out) = list_output {
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter(|line| line.contains("/Proxies"))
+            .map(|line| line.trim().to_string())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    if !proxy_keys.is_empty() {
+        if let Ok(mut child) = Command::new("/usr/sbin/scutil")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+        {
+            if let Some(ref mut stdin) = child.stdin {
+                let _ = stdin.write_all(b"open\n");
+                for key in &proxy_keys {
+                    let _ = writeln!(stdin, "notify {}", key);
+                }
+                let _ = stdin.write_all(b"close\n");
+            }
+            let _ = child.wait();
+        }
+    }
+
+    // 2. Also post Darwin notify as a fallback
+    extern "C" {
+        fn notify_post(name: *const std::ffi::c_char) -> u32;
+    }
+    let notifications = [
+        "com.apple.system.config.network_change\0".as_ptr(),
+        "com.apple.system.config.proxy_change\0".as_ptr(),
+    ];
+    for &name in &notifications {
+        unsafe { notify_post(name as *const std::ffi::c_char); }
+    }
+
+    // 3. Flush DNS cache to trigger additional network state change
+    let _ = Command::new("/usr/bin/dscacheutil").args(["-flushcache"]).status();
 }
