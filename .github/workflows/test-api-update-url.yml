@@ -1,0 +1,60 @@
+name: Test API Update URL
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version tag (e.g. v1.0.14)
+        required: true
+        default: v1.0.14
+
+jobs:
+  test-notify:
+    strategy:
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Test notify networkspy.app
+        shell: bash
+        env:
+          VERSION_TAG: ${{ inputs.version }}
+          DOWNLOAD_URL_PUSH_API_KEY: ${{ secrets.DOWNLOAD_URL_PUSH_API_KEY }}
+        run: |
+          VERSION_NUM=${VERSION_TAG#v}
+          RAW_ARCH=$(uname -m)
+
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=x64; else AK=aarch64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}.dmg"
+          elif [ "${{ matrix.platform }}" = "ubuntu-22.04" ]; then
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=amd64; else AK=arm64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}.deb"
+          else
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=x64; else AK=arm64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}_en-US.msi"
+          fi
+
+          URL="https://github.com/muizidn/NetworkSpy/releases/download/${VERSION_TAG}/${FN}"
+          echo "Platform: ${{ matrix.platform }}"
+          echo "Arch: $RAW_ARCH"
+          echo "Filename: $FN"
+          echo "URL: $URL"
+          echo "API key set: $([ -n \"$DOWNLOAD_URL_PUSH_API_KEY\" ] && echo yes || echo no)"
+          echo "API key length: ${#DOWNLOAD_URL_PUSH_API_KEY}"
+
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            BODY="{\"version\":\"${VERSION_TAG}\",\"macos\":{\"${AK}\":\"${URL}\"}}"
+          elif [ "${{ matrix.platform }}" = "ubuntu-22.04" ]; then
+            BODY="{\"version\":\"${VERSION_TAG}\",\"linux\":{\"${AK}\":\"${URL}\"}}"
+          else
+            BODY="{\"version\":\"${VERSION_TAG}\",\"windows\":{\"${AK}\":\"${URL}\"}}"
+          fi
+
+          echo "Body: $BODY"
+
+          RESPONSE=$(curl -s -X POST "https://networkspy.app/api/download-url" \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${DOWNLOAD_URL_PUSH_API_KEY}" \
+            -d "$BODY")
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | grep -q '"success":true' || exit 1
