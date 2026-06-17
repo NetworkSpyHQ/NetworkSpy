@@ -211,11 +211,12 @@ jobs:
             BODY="{\"version\":\"${VERSION_TAG}\",\"windows\":{\"${AK}\":\"${URL}\"}}"
           fi
 
-          curl -s -X POST "https://networkspy.app/api/download-url" \
+          RESPONSE=$(curl -s -X POST "https://networkspy.app/api/download-url" \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${DOWNLOAD_URL_PUSH_API_KEY}" \
-            -d "$BODY" \
-            || echo "Warning: failed to notify"
+            -d "$BODY")
+          echo "$RESPONSE"
+          echo "$RESPONSE" | grep -q '"success":true' || exit 1
 
       - name: Sentry Release
         if: env.SENTRY_AUTH_TOKEN != ''
