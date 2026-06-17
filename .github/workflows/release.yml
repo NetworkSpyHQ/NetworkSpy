@@ -190,58 +190,32 @@ jobs:
           VERSION_NUM=${VERSION_TAG#v}
           RAW_ARCH=$(uname -m)
 
-          case "${{ matrix.platform }}" in
-            macos-*)
-              case "$RAW_ARCH" in
-                x86_64) ARCH_KEY="x64" ;;
-                aarch64|arm64) ARCH_KEY="aarch64" ;;
-              esac
-              FILENAME="Network.Spy_${VERSION_NUM}_${ARCH_KEY}.dmg"
-              URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/${FILENAME}"
-              BODY=$(cat <<EOF
-            {
-              "version": "${VERSION_TAG}",
-              "macos": { "${ARCH_KEY}": "${URL}" }
-            }
-            EOF
-              )
-              ;;
-            ubuntu-*)
-              case "$RAW_ARCH" in
-                x86_64) ARCH_KEY="amd64" ;;
-                aarch64|arm64) ARCH_KEY="arm64" ;;
-              esac
-              FILENAME="Network.Spy_${VERSION_NUM}_${ARCH_KEY}.deb"
-              URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/${FILENAME}"
-              BODY=$(cat <<EOF
-            {
-              "version": "${VERSION_TAG}",
-              "linux": { "${ARCH_KEY}": "${URL}" }
-            }
-            EOF
-              )
-              ;;
-            windows-*)
-              case "$RAW_ARCH" in
-                x86_64) ARCH_KEY="x64" ;;
-                aarch64|arm64) ARCH_KEY="arm64" ;;
-              esac
-              FILENAME="Network.Spy_${VERSION_NUM}_${ARCH_KEY}_en-US.msi"
-              URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/${FILENAME}"
-              BODY=$(cat <<EOF
-            {
-              "version": "${VERSION_TAG}",
-              "windows": { "${ARCH_KEY}": "${URL}" }
-            }
-            EOF
-              )
-              ;;
-          esac
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=x64; else AK=aarch64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}.dmg"
+          elif [ "${{ matrix.platform }}" = "ubuntu-22.04" ]; then
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=amd64; else AK=arm64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}.deb"
+          else
+            if [ "$RAW_ARCH" = "x86_64" ]; then AK=x64; else AK=arm64; fi
+            FN="Network.Spy_${VERSION_NUM}_${AK}_en-US.msi"
+          fi
+
+          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/${FN}"
+
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            BODY="{\"version\":\"${VERSION_TAG}\",\"macos\":{\"${AK}\":\"${URL}\"}}"
+          elif [ "${{ matrix.platform }}" = "ubuntu-22.04" ]; then
+            BODY="{\"version\":\"${VERSION_TAG}\",\"linux\":{\"${AK}\":\"${URL}\"}}"
+          else
+            BODY="{\"version\":\"${VERSION_TAG}\",\"windows\":{\"${AK}\":\"${URL}\"}}"
+          fi
 
           curl -s -X POST "https://networkspy.app/api/download-url" \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${DOWNLOAD_URL_PUSH_API_KEY}" \
-            -d "${BODY}" || echo "⚠️ Failed to notify networkspy.app"
+            -d "$BODY" \
+            || echo "Warning: failed to notify"
 
       - name: Sentry Release
         if: env.SENTRY_AUTH_TOKEN != ''
