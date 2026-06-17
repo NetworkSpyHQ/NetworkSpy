@@ -10,6 +10,7 @@ import { FiSearch, FiCommand, FiTarget, FiMapPin, FiRefreshCw, FiGrid, FiCode, F
 interface BrowserInfo {
   name: string;
   path: string;
+  running: boolean;
 }
 
 interface CommandItem {
@@ -30,8 +31,12 @@ export const CommandPalette: React.FC = () => {
   const navigate = useNavigate();
   const { openNewWindow } = useAppProvider();
 
-  const launchBrowser = useCallback((path: string) => {
-    invoke('launch_browser', { path }).catch(() => {});
+  const launchBrowser = useCallback((name: string, path: string) => {
+    invoke('launch_browser', { name, path }).catch((e) => console.error('Failed to launch:', e));
+  }, []);
+
+  const relaunchBrowser = useCallback((name: string, path: string) => {
+    invoke('relaunch_browser', { name, path }).catch((e) => console.error('Failed to relaunch:', e));
   }, []);
 
   useEffect(() => {
@@ -63,19 +68,17 @@ export const CommandPalette: React.FC = () => {
   }, [setIsOpen]);
 
   const commands: CommandItem[] = [
-    {
-      id: 'relaunch-browser',
-      label: 'Relaunch Active Browser',
-      description: 'Launch a new instance of Google Chrome with proxy settings',
+    ...browsers.filter(b => b.running).map((b, i) => ({
+      id: `relaunch-${i}`,
+      label: `Relaunch ${b.name}`,
+      description: `Close and relaunch ${b.name}`,
       icon: <FiRefreshCw size={16} />,
-      keywords: ['browser', 'relaunch', 'restart', 'launch', 'chrome', 'firefox'],
+      keywords: ['browser', 'relaunch', 'restart', 'launch', b.name.toLowerCase()],
       action: () => {
         close();
-        const chrome = browsers.find(b => b.name === 'Google Chrome');
-        const target = chrome || browsers[0];
-        if (target) launchBrowser(target.path);
+        relaunchBrowser(b.name, b.path);
       },
-    },
+    })),
     ...browsers.map((b, i) => ({
       id: `launch-${i}`,
       label: `Launch ${b.name}`,
@@ -84,7 +87,7 @@ export const CommandPalette: React.FC = () => {
       keywords: [b.name.toLowerCase(), 'browser', 'launch', 'open'],
       action: () => {
         close();
-        launchBrowser(b.path);
+        launchBrowser(b.name, b.path);
       },
     })),
     {

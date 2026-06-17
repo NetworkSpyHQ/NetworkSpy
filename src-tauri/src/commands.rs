@@ -12,7 +12,7 @@ use std::fs;
 use rusqlite::params;
 use std::sync::atomic::Ordering;
 use arboard::Clipboard;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 #[tauri::command]
 pub fn write_to_clipboard(text: String) -> Result<(), String> {
@@ -873,88 +873,157 @@ pub fn get_current_workspace() -> Option<String> {
 pub struct BrowserInfo {
     pub name: String,
     pub path: String,
+    pub running: bool,
 }
 
-#[tauri::command]
-pub fn launch_browser(path: String) -> Result<(), String> {
-    std::process::Command::new("open")
-        .arg(&path)
-        .spawn()
-        .map_err(|e| format!("Failed to launch browser: {}", e))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn get_installed_browsers() -> Vec<BrowserInfo> {
-    let mut browsers = Vec::new();
-
+fn is_browser_running(name: &str) -> bool {
     #[cfg(target_os = "macos")]
     {
-        let candidates: &[(&str, &str)] = &[
-            ("Google Chrome", "/Applications/Google Chrome.app"),
-            ("Google Chrome Canary", "/Applications/Google Chrome Canary.app"),
-            ("Firefox", "/Applications/Firefox.app"),
-            ("Safari", "/Applications/Safari.app"),
-            ("Brave Browser", "/Applications/Brave Browser.app"),
-            ("Microsoft Edge", "/Applications/Microsoft Edge.app"),
-            ("Opera", "/Applications/Opera.app"),
-            ("Arc", "/Applications/Arc.app"),
-            ("Orion", "/Applications/Orion.app"),
-            ("Vivaldi", "/Applications/Vivaldi.app"),
-            ("Tor Browser", "/Applications/Tor Browser.app"),
-        ];
-
-        for (name, path) in candidates {
-            if std::path::Path::new(path).exists() {
-                browsers.push(BrowserInfo {
-                    name: name.to_string(),
-                    path: path.to_string(),
-                });
-            }
+        let output = std::process::Command::new("osascript")
+            .args(["-e", &format!("application \"{}\" is running", name)])
+            .output();
+        if let Ok(out) = output {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return stdout.trim() == "true";
         }
     }
 
     #[cfg(target_os = "windows")]
     {
-        let candidates: &[(&str, &str)] = &[
-            ("Chrome", r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
-            ("Chrome (x86)", r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
-            ("Firefox", r"C:\Program Files\Mozilla Firefox\firefox.exe"),
-            ("Firefox (x86)", r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"),
-            ("Edge", r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
-            ("Brave", r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"),
-            ("Opera", r"C:\Program Files\Opera\launcher.exe"),
-            ("Vivaldi", r"C:\Program Files\Vivaldi\Application\vivaldi.exe"),
-        ];
-
-        for (name, path) in candidates {
-            if std::path::Path::new(path).exists() {
-                browsers.push(BrowserInfo {
-                    name: name.to_string(),
-                    path: path.to_string(),
-                });
-            }
+        let exe_name = format!("{}.exe", name.to_lowercase().replace(' ', ""));
+        let output = std::process::Command::new("tasklist")
+            .args(["/fi", &format!("IMAGENAME eq {}", exe_name), "/nh"])
+            .output();
+        if let Ok(out) = output {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return stdout.contains(&exe_name);
         }
     }
 
     #[cfg(target_os = "linux")]
     {
-        // On Linux, check common browser executables in PATH
-        let candidates = &[
-            "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
-            "firefox", "brave-browser", "microsoft-edge", "opera", "vivaldi",
-        ];
+        let output = std::process::Command::new("pgrep")
+            .args(["-f", name])
+            .output();
+        if let Ok(out) = output {
+            return out.status.success();
+        }
+    }
 
-        for name in candidates {
-            if let Ok(path) = std::process::Command::new("which").arg(name).output() {
-                if path.status.success() {
-                    let path_str = String::from_utf8_lossy(&path.stdout).trim().to_string();
-                    if !path_str.is_empty() {
-                        browsers.push(BrowserInfo {
-                            name: name.to_string(),
-                            path: path_str,
-                        });
-                    }
+    false
+}
+
+fn kill_browser_process(name: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("osascript")
+            .args(["-e", &format!("quit app \"{}\"", name)])
+            .output();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let exe_name = format!("{}.exe", name.to_lowercase().replace(' ', ""));
+        let _ = std::process::Command::new("taskkill")
+            .args(["/f", "/im", &exe_name])
+            .output();
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("pkill")
+            .args(["-f", name])
+            .output();
+    }
+}
+
+fn open_browser(path: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch browser: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("start")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch browser: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to launch browser: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn launch_browser(name: String, path: String) -> Result<(), String> {
+    open_browser(&path)
+}
+
+#[tauri::command]
+pub fn relaunch_browser(name: String, path: String) -> Result<(), String> {
+    kill_browser_process(&name);
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    open_browser(&path)
+}
+
+#[derive(Debug, Deserialize)]
+struct BrowserEntry {
+    name: String,
+    path: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct BrowserConfig {
+    macos: Vec<BrowserEntry>,
+    windows: Vec<BrowserEntry>,
+    linux: Vec<BrowserEntry>,
+}
+
+#[tauri::command]
+pub fn get_installed_browsers() -> Vec<BrowserInfo> {
+    let config: BrowserConfig = match serde_json::from_str(include_str!("../browsers.json")) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    let entries: &[BrowserEntry] = {
+        #[cfg(target_os = "macos")] { &config.macos }
+        #[cfg(target_os = "windows")] { &config.windows }
+        #[cfg(target_os = "linux")] { &config.linux }
+    };
+
+    let mut browsers = Vec::new();
+
+    for entry in entries {
+        #[cfg(not(target_os = "linux"))]
+        if std::path::Path::new(&entry.path).exists() {
+            browsers.push(BrowserInfo {
+                name: entry.name.clone(),
+                path: entry.path.clone(),
+                running: is_browser_running(&entry.name),
+            });
+        }
+
+        #[cfg(target_os = "linux")]
+        if let Ok(path) = std::process::Command::new("which").arg(&entry.path).output() {
+            if path.status.success() {
+                let path_str = String::from_utf8_lossy(&path.stdout).trim().to_string();
+                if !path_str.is_empty() {
+                    browsers.push(BrowserInfo {
+                        name: entry.name.clone(),
+                        path: path_str,
+                        running: is_browser_running(&entry.name),
+                    });
                 }
             }
         }
