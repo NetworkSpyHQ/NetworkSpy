@@ -5,18 +5,9 @@ param (
 )
 
 $REPO = "muizidn/NetworkSpy"
-$SCRIPT_BRANCH = "main"
-
-# Fetch latest commit ID for transparency
-try {
-    $COMMIT_INFO = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/commits/$SCRIPT_BRANCH" -Method Get -Headers @{"Cache-Control"="no-cache"} -ErrorAction SilentlyContinue
-    $COMMIT_ID = ($COMMIT_INFO.sha).Substring(0, 7)
-} catch {
-    $COMMIT_ID = "unknown"
-}
 
 Write-Host "--- Network Spy Installation for Windows ---" -ForegroundColor Cyan
-Write-Host "[*] Script Source: github.com/$REPO ($SCRIPT_BRANCH#$COMMIT_ID)" -ForegroundColor Gray
+Write-Host "[*] Script Source: github.com/$REPO" -ForegroundColor Gray
 
 # 0. Clean Up (Optional)
 if ($Clean) {
@@ -65,39 +56,21 @@ if ($Clean) {
     }
 }
 
-# 1. Version Detection & Asset Discovery
+# 1. Version Detection
 if ([string]::IsNullOrWhiteSpace($Version) -or $Version -eq "latest") {
     Write-Host "[*] Fetching latest version info..."
     try {
-        $RELEASE_URL = "https://api.github.com/repos/$REPO/releases/latest"
-        $RELEASE_INFO = Invoke-RestMethod -Uri $RELEASE_URL -Method Get -Headers @{"Cache-Control"="no-cache"} -ErrorAction Stop
-        $Version = $RELEASE_INFO.tag_name
+        $VERSION_INFO = Invoke-RestMethod -Uri "https://networkspy.app/latest" -Method Get -ErrorAction Stop
+        $Version = $VERSION_INFO.version
     } catch {
-        Write-Host "[!] Could not fetch latest release info, looking for any tagged version..." -ForegroundColor Yellow
-        try {
-            $RELEASES_URL = "https://api.github.com/repos/$REPO/releases"
-            $RELEASES = Invoke-RestMethod -Uri $RELEASES_URL -Method Get -ErrorAction Stop
-            if ($RELEASES.Count -gt 0) {
-                $RELEASE_INFO = $RELEASES[0]
-                $Version = $RELEASE_INFO.tag_name
-            } else {
-                Write-Host "[ERROR] No releases found in the repository." -ForegroundColor Red
-                exit 1
-            }
-        } catch {
-            Write-Host "[ERROR] Network error while fetching releases." -ForegroundColor Red
-            exit 1
-        }
-    }
-} else {
-    # Manual version specified, fetch that specific release to get assets
-    try {
-        $RELEASE_URL = "https://api.github.com/repos/$REPO/releases/tags/$Version"
-        $RELEASE_INFO = Invoke-RestMethod -Uri $RELEASE_URL -Method Get -ErrorAction Stop
-    } catch {
-        Write-Host "[ERROR] Could not find release for version $Version." -ForegroundColor Red
+        Write-Host "[ERROR] Could not fetch latest version info from networkspy.app" -ForegroundColor Red
         exit 1
     }
+}
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    Write-Host "[ERROR] Could not determine version to install." -ForegroundColor Red
+    exit 1
 }
 
 # 2. Detect Architecture
@@ -110,20 +83,10 @@ if ($ARCH -eq "ARM64") {
 Write-Host "[*] Target Version: $Version" -ForegroundColor Gray
 Write-Host "[*] Platform: Windows ($MSI_ARCH)" -ForegroundColor Gray
 
-# 3. Find Matching Asset (Robust Discovery)
-# Looking for pattern: (Network.Spy|network-spy)_.*_x64_en-US.msi (Case Insensitive)
-$ASSET_PATTERN = "^(?i)(Network|network)[-.]Spy_.*_$($MSI_ARCH)_.*\.msi$"
-$MATCHING_ASSET = $RELEASE_INFO.assets | Where-Object { $_.name -match $ASSET_PATTERN } | Select-Object -First 1
-
-if ($null -eq $MATCHING_ASSET) {
-    Write-Host "[ERROR] Could not find a matching MSI asset ($MSI_ARCH) in release $Version." -ForegroundColor Red
-    Write-Host "Available assets: " -ForegroundColor Gray
-    $RELEASE_INFO.assets.name | ForEach-Object { Write-Host " - $_" -ForegroundColor Gray }
-    exit 1
-}
-
-$FILENAME = $MATCHING_ASSET.name
-$DOWNLOAD_URL = $MATCHING_ASSET.browser_download_url
+# 3. Construct Download URL
+$VERSION_NUM = $Version.TrimStart('v')
+$FILENAME = "Network.Spy_${VERSION_NUM}_${MSI_ARCH}_en-US.msi"
+$DOWNLOAD_URL = "https://github.com/$REPO/releases/download/${Version}/${FILENAME}"
 
 # 4. Download and Prepare MSI
 $TEMP_FILE = Join-Path $env:TEMP $FILENAME
