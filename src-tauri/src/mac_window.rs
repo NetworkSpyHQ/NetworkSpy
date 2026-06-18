@@ -1,7 +1,7 @@
 #[cfg(target_os = "macos")]
 use cocoa::foundation::NSRect;
 #[cfg(target_os = "macos")]
-use objc::{msg_send, sel, sel_impl};
+use objc::{class, msg_send, sel, sel_impl};
 #[cfg(target_os = "macos")]
 use tauri::{Runtime, WebviewWindow};
 
@@ -9,6 +9,7 @@ use tauri::{Runtime, WebviewWindow};
 pub fn setup_mac_window<R: Runtime>(window: &WebviewWindow<R>) {
     use cocoa::appkit::{NSColor, NSWindow, NSWindowTitleVisibility, NSWindowStyleMask};
     use cocoa::base::{id, nil, YES};
+    use cocoa::foundation::NSString;
     use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
     let ns_window = window.ns_window().expect("Failed to get NSWindow") as cocoa::base::id;
@@ -34,14 +35,18 @@ pub fn setup_mac_window<R: Runtime>(window: &WebviewWindow<R>) {
         );
         ns_window.setBackgroundColor_(bg_color);
 
-        // 4. Position traffic lights
+        // 4. Force dark appearance regardless of system theme
+        let dark_appearance: id = msg_send![class!(NSAppearance), appearanceNamed: NSString::alloc(nil).init_str("NSAppearanceNameDarkAqua")];
+        let _: () = msg_send![ns_window, setAppearance: dark_appearance];
+
+        // 5. Position traffic lights
         position_traffic_lights(ns_window, 13.0, 18.0);
     }
 
-    // 5. Apply vibrancy for the glass effect
+    // 6. Apply vibrancy for the glass effect
     let _ = apply_vibrancy(window, NSVisualEffectMaterial::UnderWindowBackground, None, None);
 
-    // 6. Listen for resize events to maintain traffic light positioning
+    // 7. Listen for resize events to maintain traffic light positioning
     let window_clone = window.clone();
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Resized(..) = event {

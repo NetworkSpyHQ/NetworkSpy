@@ -20,7 +20,7 @@
         "resizable": true,
         "decorations": true,
         "transparent": true,
-
+        "theme": "Dark",
         "titleBarStyle": "Transparent"
       }
 

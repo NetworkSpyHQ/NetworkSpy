@@ -6,7 +6,9 @@ pub fn create_window(
 ) {
     tauri::async_runtime::spawn(async move {
         let mut window_builder =
-            tauri::WindowBuilder::new(&window, id, tauri::WindowUrl::App(url.into())).title(title);
+            tauri::WindowBuilder::new(&window, id, tauri::WindowUrl::App(url.into()))
+                .title(title)
+                .theme(Some(tauri::Theme::Dark));
 
         #[cfg(target_os = "linux")]
         {

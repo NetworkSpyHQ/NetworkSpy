@@ -63,11 +63,7 @@ use crate::traffic::db::{is_text_content_type, body_to_string};
 
 use commands::*;
 #[cfg(target_os = "macos")]
-use objc::msg_send;
-#[cfg(target_os = "macos")]
-use objc::sel;
-#[cfg(target_os = "macos")]
-use objc::sel_impl;
+use objc::{class, msg_send, sel, sel_impl};
 
 
 
@@ -138,6 +134,16 @@ fn main() {
             
 
             // 0. Native Window Customization
+            #[cfg(target_os = "macos")]
+            unsafe {
+                use cocoa::base::{id, nil};
+                use cocoa::foundation::NSString;
+
+                let dark_appearance: id = msg_send![class!(NSAppearance), appearanceNamed: NSString::alloc(nil).init_str("NSAppearanceNameDarkAqua")];
+                let shared_app: id = msg_send![class!(NSApplication), sharedApplication];
+                let _: () = msg_send![shared_app, setAppearance: dark_appearance];
+            }
+
             if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
                 {
