@@ -179,6 +179,14 @@ export const CommandPalette: React.FC = () => {
       action: () => { close(); openNewWindow('sessions', 'Saved Sessions'); },
     },
     {
+      id: 'composer',
+      label: 'Open Composer',
+      description: 'Craft and send custom HTTP requests',
+      icon: <FiCode size={16} />,
+      keywords: ['composer', 'request', 'http', 'api', 'craft', 'send', 'postman'],
+      action: () => { close(); openNewWindow('composer', 'Composer'); },
+    },
+    {
       id: 'settings',
       label: 'Open Settings',
       description: 'Configure application settings',

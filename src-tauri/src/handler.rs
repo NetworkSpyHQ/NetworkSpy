@@ -105,6 +105,7 @@ macro_rules! generate_handler {
             crate::commands::get_installed_browsers,
             crate::commands::launch_browser,
             crate::commands::relaunch_browser,
+            crate::commands::send_composer_request,
         ]
     };
 }

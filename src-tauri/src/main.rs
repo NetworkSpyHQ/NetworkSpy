@@ -444,6 +444,12 @@ fn main() {
                             open_new_window_internal(&h, "scripting".to_string(), "Custom Scripting".to_string());
                         });
                     }
+                    "composer" => {
+                        let h = app_handle_menu.clone();
+                        tauri::async_runtime::spawn(async move {
+                            open_new_window_internal(&h, "composer".to_string(), "Composer".to_string());
+                        });
+                    }
                     "check_updates" => {
                         let handle = app_handle_menu.clone();
                         tauri::async_runtime::spawn(async move {

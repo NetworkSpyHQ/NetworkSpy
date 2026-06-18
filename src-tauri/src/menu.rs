@@ -66,5 +66,7 @@ pub fn create_tools_submenu<R: tauri::Runtime>(manager: &impl Manager<R>) -> tau
         .item(&MenuItemBuilder::with_id("map_remote", "Map Remote Rules").build(manager)?)
         .item(&MenuItemBuilder::with_id("proxylist", "Proxy Intercept Rules").build(manager)?)
         .item(&MenuItemBuilder::with_id("scripting", "Custom Scripting").build(manager)?)
+        .separator()
+        .item(&MenuItemBuilder::with_id("composer", "Composer").accelerator("CmdOrCtrl+Shift+C").build(manager)?)
         .build()
 }
