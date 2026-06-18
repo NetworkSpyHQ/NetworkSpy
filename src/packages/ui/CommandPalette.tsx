@@ -28,6 +28,7 @@ export const CommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [browsers, setBrowsers] = useState<BrowserInfo[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { openNewWindow } = useAppProvider();
 
@@ -39,33 +40,46 @@ export const CommandPalette: React.FC = () => {
     invoke('relaunch_browser', { name, path }).catch((e) => console.error('Failed to relaunch:', e));
   }, []);
 
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setQuery('');
+  }, [setIsOpen]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === 'p' || e.key === 'k')) {
         e.preventDefault();
         setIsOpen(prev => !prev);
       }
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, setIsOpen]);
+  }, [setIsOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      invoke<BrowserInfo[]>('get_installed_browsers').then(setBrowsers).catch(() => setBrowsers([]));
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [isOpen]);
-
-  const close = useCallback(() => {
-    setIsOpen(false);
+    if (!isOpen) return;
     setQuery('');
-  }, [setIsOpen]);
+    setSelectedIndex(0);
+    invoke<BrowserInfo[]>('get_installed_browsers').then(setBrowsers).catch(() => setBrowsers([]));
+    setTimeout(() => inputRef.current?.focus(), 50);
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close();
+      }
+    };
+    const handleGlobalMouseDown = (e: MouseEvent) => {
+      if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
+        close();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('mousedown', handleGlobalMouseDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('mousedown', handleGlobalMouseDown);
+    };
+  }, [isOpen, close]);
 
   const commands: CommandItem[] = [
     ...browsers.filter(b => b.running).map((b, i) => ({
@@ -217,21 +231,16 @@ export const CommandPalette: React.FC = () => {
     } else if (e.key === 'Enter' && filtered[selectedIndex]) {
       e.preventDefault();
       filtered[selectedIndex].action();
-    } else if (e.key === 'Escape') {
-      close();
     }
   };
 
   if (!isOpen) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
-      onClick={(e) => { if (e.target === e.currentTarget) close(); }}
-    >
+    <div className="fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div
+        ref={dialogRef}
         className="w-full max-w-lg bg-[#1a1a1a] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-800">
           <FiSearch size={16} className="text-zinc-500 shrink-0" />
