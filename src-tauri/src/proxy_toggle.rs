@@ -162,6 +162,7 @@ fn refresh_proxy() {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 fn bounce_network_service_macos(services: &[String], wait: Duration) {
     // Design: briefly disable then re-enable all network services to force the OS network
     // stack to reset. The idea was that Chrome would drop existing TCP connections and

@@ -970,7 +970,7 @@ fn open_browser(path: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn launch_browser(name: String, path: String) -> Result<(), String> {
+pub fn launch_browser(_name: String, path: String) -> Result<(), String> {
     open_browser(&path)
 }
 
@@ -988,6 +988,7 @@ struct BrowserEntry {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct BrowserConfig {
     macos: Vec<BrowserEntry>,
     windows: Vec<BrowserEntry>,
