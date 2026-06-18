@@ -1,11 +1,12 @@
 import { Renderer, TableView } from "@src/packages/ui/TableView";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ToolBaseHeader } from "@src/packages/ui/ToolBaseHeader";
 import { v4 as uuidv4 } from "uuid";
 import { ProxyRuleDialog, ProxyRuleModel as IProxyRuleModel } from "./components/ProxyRuleDialog";
 import { FiShield, FiCheck, FiTrash2, FiEdit3, FiZap, FiLock } from "react-icons/fi";
 import { twMerge } from "tailwind-merge";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useLicense } from "@src/hooks/useLicense";
 import { useUpgradeDialog } from "@src/context/UpgradeContext";
 
@@ -107,7 +108,7 @@ const ProxyList: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<IProxyRuleModel | null>(null);
 
-  const fetchRules = async () => {
+  const fetchRules = useCallback(async () => {
     try {
         const rules = await invoke<IProxyRuleModel[]>("get_proxy_rules");
         setData(rules);
@@ -118,11 +119,20 @@ const ProxyList: React.FC = () => {
             { id: '1', enabled: true, name: 'Default Intercept', pattern: '*', action: 'INTERCEPT' }
         ]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRules();
-  }, []);
+  }, [fetchRules]);
+
+  useEffect(() => {
+    const unlisten = listen("proxy_rules_updated", () => {
+      fetchRules();
+    });
+    return () => {
+      unlisten.then(u => u());
+    };
+  }, [fetchRules]);
 
   const handleToggle = async (id: string) => {
     const item = dataRef.current.find(d => d.id === id);

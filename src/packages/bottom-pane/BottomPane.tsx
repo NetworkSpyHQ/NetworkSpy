@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import { useState, Suspense } from "react";
 import { FiAlertCircle } from "react-icons/fi";
 
@@ -79,6 +80,7 @@ export const BottomPane = () => {
         }
       });
 
+      emit("proxy_rules_updated");
       setAddedIds(prev => new Set(prev).add(String(selected.id)));
     } catch (e) {
       console.error(e);
@@ -122,6 +124,8 @@ export const BottomPane = () => {
           console.error("Failed to add batch rule:", err);
         }
       }
+
+      emit("proxy_rules_updated");
 
       setAddedIds(prev => {
         const next = new Set(prev);
@@ -208,6 +212,7 @@ export const BottomPane = () => {
                             client: client
                           }
                         });
+                        emit("proxy_rules_updated");
                         setAddedIds(prev => new Set(prev).add(String(selected.id)));
                       } catch (e) {
                         console.error(e);
