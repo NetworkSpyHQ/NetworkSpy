@@ -1,22 +1,15 @@
 import { Editor, EditorProps, OnMount } from "@monaco-editor/react";
-import { Menu, PredefinedMenuItem, MenuItemOptions } from "@tauri-apps/api/menu";
-import { useState, useCallback } from "react";
+import { Menu } from "@tauri-apps/api/menu";
+import { useState, useRef, useCallback } from "react";
 
 export const MonacoEditor = (props: EditorProps) => {
   const [wordWrap, setWordWrap] = useState<"on" | "off">(props.options?.wordWrap === "on" ? "on" : "off");
-  const [editor, setEditor] = useState<any>(null);
-  const [monaco, setMonaco] = useState<any>(null);
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
 
-  const handleEditorDidMount: OnMount = (editor, monaco) => {
-    setEditor(editor);
-    setMonaco(monaco);
-    if (props.onMount) {
-      props.onMount(editor, monaco);
-    }
-  };
-
-  const handleContextMenu = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const showContextMenu = useCallback(async () => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
     if (!editor || !monaco) return;
 
     const selection = editor.getSelection();
@@ -116,22 +109,35 @@ export const MonacoEditor = (props: EditorProps) => {
         },
       ];
 
-      // Add custom items if provided in the future, but for now just basic actions
       const menu = await Menu.new({ items });
       await menu.popup();
     } catch (err) {
       console.error("Failed to show context menu", err);
     }
-  }, [editor, monaco, wordWrap]);
+  }, [wordWrap]);
+
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    editor.onContextMenu((e: any) => {
+      e.event.preventDefault();
+      showContextMenu();
+    });
+
+    if (props.onMount) {
+      props.onMount(editor, monaco);
+    }
+  };
 
   const editorOptions = {
     ...props.options,
     wordWrap,
-    contextmenu: false, // Force disable Monaco context menu to use native instead
+    contextmenu: false,
   };
 
   return (
-    <div className="h-full w-full relative" onContextMenu={handleContextMenu}>
+    <div className="h-full w-full relative">
       <Editor
         {...props}
         onMount={handleEditorDidMount}
