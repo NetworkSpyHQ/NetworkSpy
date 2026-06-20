@@ -59,7 +59,7 @@ export const UrlBar: React.FC<UrlBarProps> = ({
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="https://api.example.com/endpoint"
+            placeholder="https://api.example.com/endpoint — or paste a curl command"
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}

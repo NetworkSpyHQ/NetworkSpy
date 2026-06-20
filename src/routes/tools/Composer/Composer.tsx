@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ToolBaseHeader } from "@src/packages/ui/ToolBaseHeader";
 import { FiSend, FiMaximize2 } from "react-icons/fi";
 import { invoke } from "@tauri-apps/api/core";
@@ -9,6 +9,7 @@ import { RequestView } from "./components/RequestView";
 import type { Header } from "./components/RequestView";
 import { ResponseView } from "./components/ResponseView";
 import type { ComposerResponse } from "./components/ResponseView";
+import { parseCurl } from "./components/curlParser";
 
 let headerIdCounter = 0;
 const newHeaderId = () => `hdr_${++headerIdCounter}`;
@@ -25,7 +26,15 @@ const Composer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"request" | "response">("request");
   const [activeRequestTab, setActiveRequestTab] = useState<"headers" | "body">("headers");
-  const [activeResponseTab, setActiveResponseTab] = useState<"headers" | "body" | "hex">("headers");
+  const [activeResponseTab, setActiveResponseTab] = useState<"headers" | "body" | "hex">("body");
+  const [curlToast, setCurlToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const handleAddHeader = () => {
     setHeaders(prev => [...prev, { id: newHeaderId(), key: "", value: "" }]);
@@ -53,9 +62,46 @@ const Composer: React.FC = () => {
     }
   };
 
+  const showCurlToast = (message: string) => {
+    setCurlToast(message);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setCurlToast(null), 3000);
+  };
+
   const handleUrlChange = (value: string) => {
     setUrl(value);
     setUrlError(validateUrl(value));
+
+    if (value.trim().toLowerCase().startsWith("curl ")) {
+      try {
+        const parsed = parseCurl(value.trim());
+        if (parsed.url) {
+          const upperMethod = parsed.method.toUpperCase() as HttpMethod;
+          setMethod(upperMethod);
+          setUrl(parsed.url);
+          setUrlError(null);
+
+          if (parsed.headers.length > 0) {
+            setHeaders(parsed.headers.map(h => ({ id: newHeaderId(), key: h.key, value: h.value })));
+          }
+
+          if (parsed.body) {
+            const isJson = parsed.headers.some(h => h.key.toLowerCase() === "content-type" && h.value.toLowerCase().includes("json"));
+            setBodyType(isJson ? "json" : "text");
+            try {
+              setBodyText(JSON.stringify(JSON.parse(parsed.body), null, 2));
+            } catch {
+              setBodyText(parsed.body);
+            }
+            setActiveRequestTab("body");
+          }
+
+          showCurlToast("cURL imported — " + upperMethod + " " + parsed.url);
+        }
+      } catch {
+        // parse failed, just keep the raw text
+      }
+    }
   };
 
   const handleSend = async () => {
@@ -169,6 +215,12 @@ const Composer: React.FC = () => {
           )}
         </div>
       </div>
+
+      {curlToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] px-3 py-2 bg-emerald-950/40 backdrop-blur-md border border-emerald-500/30 rounded-lg shadow-[0_0_30px_-6px_rgba(16,185,129,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <p className="text-emerald-400 text-[11px] font-mono">{curlToast}</p>
+        </div>
+      )}
 
       {urlError && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] px-3 py-2 bg-red-950/40 backdrop-blur-md border border-red-500/30 rounded-lg shadow-[0_0_30px_-6px_rgba(239,68,68,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200">

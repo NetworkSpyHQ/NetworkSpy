@@ -1,5 +1,5 @@
 import React from "react";
-import { FiPlus, FiTrash2, FiCode, FiType, FiMinimize2 } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiCode, FiType, FiMinimize2, FiAlignLeft } from "react-icons/fi";
 import { twMerge } from "tailwind-merge";
 import { MonacoEditor } from "@src/packages/ui/MonacoEditor";
 import { Tabs } from "./Tabs";
@@ -64,12 +64,28 @@ const HeadersEditor: React.FC<{
   </div>
 );
 
+const prettifyJSON = (text: string): string => {
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2);
+  } catch {
+    return text;
+  }
+};
+
 const BodyEditor: React.FC<{
   bodyType: "none" | "text" | "json";
   onBodyTypeChange: (type: "none" | "text" | "json") => void;
   bodyText: string;
   onBodyTextChange: (value: string) => void;
-}> = ({ bodyType, onBodyTypeChange, bodyText, onBodyTextChange }) => (
+}> = ({ bodyType, onBodyTypeChange, bodyText, onBodyTextChange }) => {
+  const handlePrettify = () => {
+    const formatted = prettifyJSON(bodyText);
+    if (formatted !== bodyText) {
+      onBodyTextChange(formatted);
+    }
+  };
+
+  return (
   <div className="flex flex-col flex-1 min-h-0 gap-2">
     <div className="flex items-center gap-2 flex-shrink-0">
       {(["none", "text", "json"] as const).map((type) => (
@@ -89,6 +105,15 @@ const BodyEditor: React.FC<{
           {type}
         </button>
       ))}
+      {bodyType === "json" && (
+        <button
+          onClick={handlePrettify}
+          className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all"
+        >
+          <FiAlignLeft size={11} />
+          Prettify
+        </button>
+      )}
     </div>
     {bodyType !== "none" && (
       <div className="flex-1 min-h-0 border border-zinc-800 rounded-lg overflow-hidden">
@@ -109,7 +134,8 @@ const BodyEditor: React.FC<{
       </div>
     )}
   </div>
-);
+  );
+};
 
 export const RequestView: React.FC<RequestViewProps> = ({
   activeRequestTab,
