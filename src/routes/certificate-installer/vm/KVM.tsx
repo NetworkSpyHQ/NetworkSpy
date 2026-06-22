@@ -2,136 +2,111 @@ import { FiMonitor } from "react-icons/fi";
 import Guide, { GuideStep } from "../Guide";
 
 export function KVMInstaller() {
-  const KVMSteps: GuideStep[] = [
+  const kvmSteps: GuideStep[] = [
     {
-      title: "Download and Install NetworkSpy",
+      title: "What This Does",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit the NetworkSpy website and download the installer for KVM:{" "}
-            <a
-              href="https://NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              https://NetworkSpy.io
-            </a>
+            To intercept HTTPS traffic from a KVM/QEMU virtual machine, NetworkSpy runs
+            on your host and acts as a proxy. The VM routes traffic through the host,
+            and NetworkSpy decrypts TLS using its root CA.
           </p>
-          <p className="mt-2">
-            Open a terminal and navigate to the download directory. Run the
-            following commands to install NetworkSpy:
-          </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <code>sudo dpkg -i NetworkSpy-setup.deb</code>
-            </p>
-            <p>
-              <code>sudo apt-get install -f</code>
-            </p>
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Certificate Location (host)</p>
+            <code className="text-[11px] text-blue-400 break-all">
+              ~/.network-spy/ca/network-spy.crt
+            </code>
           </div>
         </div>
       ),
     },
     {
-      title: "Install Root NetworkSpy Certificate",
+      title: "Transfer Certificate Into the VM",
       description: (
-        <div>
-          <p>Open NetworkSpy and go to:</p>
-          <p className="mt-2 font-medium">
-            Preferences &gt; Certificates &gt; Install Certificate
-          </p>
-          <p className="mt-2">
-            Follow the prompts to install the root certificate and ensure it is
-            trusted by your system.
-          </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2 flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Installed & Trusted!</span>
-          </div>
+        <div className="space-y-3">
+          <p>Get the cert file into the guest OS:</p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              <b>virtiofs / 9p shared folder</b>: If you have a shared folder set up,
+              copy the cert through it. Add{" "}
+              <code className="text-blue-400 text-[11px]">-virtfs local,path=/home/user/.network-spy/ca,mount_tag=certs,security_model=none</code>{" "}
+              to your QEMU command.
+            </li>
+            <li>
+              <b>SCP</b>: Most direct method — SSH into the VM:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>scp ~/.network-spy/ca/network-spy.crt user@vm-ip:~/</code>
+                </pre>
+              </div>
+            </li>
+            <li>
+              <b>HTTP server</b>: Start a local server on the host and download from
+              inside the VM:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>cd ~/.network-spy/ca && python3 -m http.server 8000\{"\n"}# Inside VM: wget http://&lt;host-ip&gt;:8000/network-spy.crt</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Config Proxy Settings on KVM",
+      title: "Install Certificate in the VM",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">Settings</span> &gt;{" "}
-            <span className="font-medium">Network</span>.
-          </p>
-          <p className="mt-2">
-            Select your active network connection and click
-            <span className="font-medium"> Network Proxy</span>.
-          </p>
-          <p className="mt-2">Configure the following:</p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <span className="font-medium">HTTP Proxy:</span> 192.168.1.4 port 9090
-            </p>
-            <p>
-              <span className="font-medium">HTTPS Proxy:</span> 192.168.1.4 port 9090
-            </p>
-          </div>
-          <p className="mt-2">
-            Ensure <span className="font-medium">Use the same proxy for all protocols</span> is checked.
-          </p>
-          <p className="mt-2">Click <span className="font-medium">Apply</span> to save the changes.</p>
+        <div className="space-y-3">
+          <p>Install the cert according to the guest OS:</p>
+          <ul className="list-disc list-inside space-y-2 text-[12px] text-zinc-400 ml-2">
+            <li>
+              <b>Linux guest</b> (most common for KVM) →{" "}
+              <code className="text-blue-400">sudo cp network-spy.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates</code>.
+              See the <b>Linux</b> guide in the sidebar for browser-specific (NSS, Firefox) steps.
+            </li>
+            <li>
+              <b>Windows guest</b> → Double-click the <code className="text-blue-400">.crt</code>,
+              "Install Certificate" → Current User → Trusted Root Certification Authorities.
+            </li>
+          </ul>
         </div>
       ),
     },
     {
-      title: "Open Google Web Browser on KVM",
+      title: "Configure Proxy in the VM",
       description: (
-        <div>
-          <p>
-            Visit Website:{" "}
-            <a
-              href="http://cert.NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              http://cert.NetworkSpy.io
-            </a>
-          </p>
-          <p className="mt-2">
-            Let it install the 'NetworkSpy CA' certificate and follow the prompts.
-          </p>
-          <p className="mt-2">
-            If you could not download the certificate, please read the
-            "Troubleshooting Page".
-          </p>
+        <div className="space-y-3">
+          <p>Route VM traffic through NetworkSpy on the host:</p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              With <b>user-mode networking</b> (default, <code className="text-blue-400">-net user</code>),
+              the host is at <code className="text-blue-400">10.0.2.2</code>.
+              With <b>bridged networking</b> or <b>macvtap</b>, use the host's LAN IP.
+            </li>
+            <li>
+              Set the proxy in the guest OS to{" "}
+              <code className="text-blue-400">&lt;host-ip&gt;:9090</code>.
+            </li>
+            <li>
+              For CLI tools:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>export HTTP_PROXY=http://10.0.2.2:9090\{"\n"}export HTTPS_PROXY=http://10.0.2.2:9090</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Trust NetworkSpy Certificate in System Settings",
+      title: "Verify It Works",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">System Settings</span> &gt;{" "}
-            <span className="font-medium">Privacy & Security</span> &gt;{" "}
-            <span className="font-medium">Certificates</span>.
-          </p>
-          <p className="mt-2">
-            Add the NetworkSpy CA certificate to the list of trusted certificates.
-          </p>
-        </div>
-      ),
-    },
-    {
-      title: "Verify Proxy Configuration",
-      description: (
-        <div>
-          <p>
-            Open your web browser and navigate to{" "}
-            <a
-              href="http://example.com"
-              className="text-blue-400 hover:underline"
-            >
-              http://example.com
-            </a>{" "}
-            to ensure the proxy settings are correctly configured.
-          </p>
-          <p className="mt-2">
-            You should see the traffic being captured by NetworkSpy.
+        <div className="space-y-3">
+          <p className="text-[12px] text-zinc-400">
+            In the VM browser, visit <code className="text-blue-400">https://example.com</code>.
+            No cert warning = working. The request should appear in NetworkSpy on the host.
           </p>
         </div>
       ),
@@ -142,7 +117,7 @@ export function KVMInstaller() {
     <Guide
       platform="KVM"
       icon={<FiMonitor size={32} />}
-      steps={KVMSteps}
+      steps={kvmSteps}
     />
   );
 }

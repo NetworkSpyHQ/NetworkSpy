@@ -1,7 +1,6 @@
 import { useState, ReactNode, useMemo, useEffect } from "react";
 import { type } from "@tauri-apps/plugin-os";
-import { FiSearch, FiMonitor, FiCpu, FiCode } from "react-icons/fi";
-import { HiOutlineDeviceMobile } from "react-icons/hi";
+import { FiSearch, FiMonitor } from "react-icons/fi";
 import { twMerge } from "tailwind-merge";
 
 import { WindowsInstaller } from "./computer/Windows";
@@ -15,8 +14,13 @@ import { DockerInstaller } from "./vm/Docker";
 import { VirtualBoxInstaller } from "./vm/VirtualBox";
 import { VMWareInstaller } from "./vm/VMWare";
 import { KVMInstaller } from "./vm/KVM";
+import { PythonInstaller } from "./development/Python";
+import { NodeInstaller } from "./development/Node";
+import { GoInstaller } from "./development/Go";
+import { RustInstaller } from "./development/Rust";
+import { RubyInstaller } from "./development/Ruby";
 
-import { SiApple, SiWindows, SiLinux, SiAndroid, SiMicrostrategy, SiGnometerminal, SiHuawei, SiDocker, SiVirtualbox, SiVmware, SiPython, SiRuby, SiOpenjdk, SiNodedotjs, SiDotnet, SiPhp, SiGo, SiRust } from "react-icons/si";
+import { SiApple, SiWindows, SiLinux, SiAndroid, SiMicrostrategy, SiGnometerminal, SiHuawei, SiDocker, SiVirtualbox, SiVmware, SiPython, SiNodedotjs, SiGo, SiRust, SiRuby } from "react-icons/si";
 
 export interface Tab {
   id: string;
@@ -44,9 +48,20 @@ const TabPanel: React.FC<TabPanelProps> = ({ tag, current, children }) => {
 
 const ComingSoon: React.FC<{ name: string; icon: React.ReactNode }> = ({ name, icon }) => (
   <div className="h-full flex items-center justify-center text-zinc-600 bg-[#050505]">
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-6">
       <div className="text-zinc-800">{icon}</div>
-      <div className="text-sm font-bold uppercase tracking-widest text-zinc-800">{name} Integration Coming Soon</div>
+      <div className="text-sm font-bold uppercase tracking-widest text-zinc-700">{name} Integration</div>
+      <div className="text-[10px] text-zinc-600 text-center max-w-xs leading-relaxed">
+        We're working on native {name} support. Join the waitlist to get notified when it's ready.
+      </div>
+      <button
+        className="px-6 py-2.5 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-bold hover:bg-blue-600/30 hover:text-blue-300 transition-all active:scale-95"
+        onClick={() => {
+          window.open("https://networkspy.io/waitlist", "_blank");
+        }}
+      >
+        Join Waitlist
+      </button>
     </div>
   </div>
 );
@@ -74,10 +89,11 @@ export const UnifiedCertificateInstaller: React.FC = () => {
     { id: "kvm", title: "KVM", category: "Virtual Machines", content: <KVMInstaller />, icon: <FiMonitor size={16} /> },
 
     // Development
-    { id: "python", title: "Python", category: "Development", content: <ComingSoon name="Python" icon={<SiPython size={48} />} />, icon: <SiPython size={16} /> },
-    { id: "nodejs", title: "Node.js", category: "Development", content: <ComingSoon name="Node.js" icon={<SiNodedotjs size={48} />} />, icon: <SiNodedotjs size={16} /> },
-    { id: "go", title: "Go (Golang)", category: "Development", content: <ComingSoon name="Go" icon={<SiGo size={48} />} />, icon: <SiGo size={16} /> },
-    { id: "rust", title: "Rust", category: "Development", content: <ComingSoon name="Rust" icon={<SiRust size={48} />} />, icon: <SiRust size={16} /> },
+    { id: "python", title: "Python", category: "Development", content: <PythonInstaller />, icon: <SiPython size={16} /> },
+    { id: "nodejs", title: "Node.js", category: "Development", content: <NodeInstaller />, icon: <SiNodedotjs size={16} /> },
+    { id: "go", title: "Go (Golang)", category: "Development", content: <GoInstaller />, icon: <SiGo size={16} /> },
+    { id: "rust", title: "Rust", category: "Development", content: <RustInstaller />, icon: <SiRust size={16} /> },
+    { id: "ruby", title: "Ruby", category: "Development", content: <RubyInstaller />, icon: <SiRuby size={16} /> },
   ];
 
   const [currentTab, setCurrentTab] = useState(tabs[0].id);

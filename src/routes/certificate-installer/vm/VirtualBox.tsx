@@ -2,140 +2,121 @@ import { SiVirtualbox } from "react-icons/si";
 import Guide, { GuideStep } from "../Guide";
 
 export function VirtualBoxInstaller() {
-  const VirtualBoxSteps: GuideStep[] = [
+  const vbSteps: GuideStep[] = [
     {
-      title: "Download and Install NetworkSpy",
+      title: "What This Does",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit the NetworkSpy website and download the installer for VirtualBox:{" "}
-            <a
-              href="https://NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              https://NetworkSpy.io
-            </a>
+            To intercept HTTPS traffic from a VirtualBox virtual machine, NetworkSpy
+            runs on your host machine and acts as a proxy. The VM routes its traffic
+            through the host, and NetworkSpy decrypts TLS using its root CA.
           </p>
-          <p className="mt-2">
-            Open the downloaded file and drag the NetworkSpy app to your
-            Applications folder.
+          <p>
+            The VM needs the CA certificate installed in its trust store and its
+            network configured to use the host as a proxy.
           </p>
-        </div>
-      ),
-    },
-    {
-      title: "Install Root NetworkSpy Certificate",
-      description: (
-        <div>
-          <p>Open NetworkSpy and go to:</p>
-          <p className="mt-2 font-medium">
-            Preferences &gt; Certificates &gt; Install Certificate
-          </p>
-          <p className="mt-2">
-            Follow the prompts to install the root certificate and ensure it is
-            trusted by your system.
-          </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2 flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Installed & Trusted!</span>
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Certificate Location (host)</p>
+            <code className="text-[11px] text-blue-400 break-all">
+              ~/.network-spy/ca/network-spy.crt
+            </code>
           </div>
         </div>
       ),
     },
     {
-      title: "Config Wifi Proxy on VirtualBox",
+      title: "Transfer Certificate Into the VM",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">System Preferences</span> &gt;{" "}
-            <span className="font-medium">Network</span>.
-          </p>
-          <p className="mt-2">
-            Select your active network connection (Wi-Fi or Ethernet) and click
-            <span className="font-medium"> Advanced</span>.
-          </p>
-          <p className="mt-2">Go to the <span className="font-medium">Proxies</span> tab and configure the following:</p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <span className="font-medium">Web Proxy (HTTP):</span> 192.168.1.4 port 9090
-            </p>
-            <p>
-              <span className="font-medium">Secure Web Proxy (HTTPS):</span> 192.168.1.4 port 9090
-            </p>
-          </div>
-          <p className="mt-2">
-            Ensure <span className="font-medium">Use Passive FTP Mode (PASV)</span> is unchecked.
-          </p>
-          <p className="mt-2">Click <span className="font-medium">OK</span> and then <span className="font-medium">Apply</span> to save the changes.</p>
+        <div className="space-y-3">
+          <p>Choose one method to get the cert file into the guest OS:</p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              <b>Shared Folders</b>: Enable a shared folder in VM settings →
+              Devices → Shared Folders. Map to <code className="text-blue-400 text-[11px]">~/.network-spy/ca/</code>.
+            </li>
+            <li>
+              <b>Drag & Drop</b>: Enable drag-and-drop in VM settings, then drag
+              <code className="text-blue-400 text-[11px]">network-spy.crt</code> into the VM window.
+            </li>
+            <li>
+              <b>SCP</b>: If the VM has SSH enabled, from the host:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>scp ~/.network-spy/ca/network-spy.crt user@vm-ip:~/</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Open Google Web Browser on VirtualBox",
+      title: "Install Certificate in the VM",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit Website:{" "}
-            <a
-              href="http://cert.NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              http://cert.NetworkSpy.io
-            </a>
+            Once the cert file is inside the VM, install it according to the
+            guest operating system:
           </p>
-          <p className="mt-2">
-            Let it install the 'NetworkSpy CA' certificate and follow the prompts.
-          </p>
-          <p className="mt-2">
-            If you could not download the certificate, please read the
-            "Troubleshooting Page".
-          </p>
+          <ul className="list-disc list-inside space-y-2 text-[12px] text-zinc-400 ml-2">
+            <li>
+              <b>Windows guest</b> → Double-click the <code className="text-blue-400">.crt</code> file,
+              choose "Install Certificate" → Current User → Trusted Root Certification Authorities.
+              See the <b>Windows</b> guide in the sidebar for full details.
+            </li>
+            <li>
+              <b>Linux guest</b> → Copy to{" "}
+              <code className="text-blue-400">/usr/local/share/ca-certificates/</code> and
+              run <code className="text-blue-400">sudo update-ca-certificates</code>.
+              See the <b>Linux</b> guide for browser-specific steps.
+            </li>
+            <li>
+              <b>macOS guest</b> → Double-click the cert, open in Keychain Access,
+              set to "Always Trust". See the <b>macOS</b> guide for full details.
+            </li>
+          </ul>
         </div>
       ),
     },
     {
-      title: "Trust NetworkSpy Certificate in Keychain Access",
+      title: "Configure Proxy in the VM",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Open <span className="font-medium">Keychain Access</span> from the
-            Applications &gt; Utilities folder.
+            Route the VM's traffic through NetworkSpy on the host:
           </p>
-          <p className="mt-2">
-            In the left sidebar, select <span className="font-medium">System</span> and then <span className="font-medium">Certificates</span>.
-          </p>
-          <p className="mt-2">
-            Find the NetworkSpy CA certificate, right-click on it, and select{" "}
-            <span className="font-medium">Get Info</span>.
-          </p>
-          <p className="mt-2">
-            Expand the <span className="font-medium">Trust</span> section and
-            set <span className="font-medium">When using this certificate</span> to{" "}
-            <span className="font-medium">Always Trust</span>.
-          </p>
-          <p className="mt-2">
-            Close the window, and enter your password to confirm the changes.
-          </p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>Find your host's IP as seen from the VM. With <b>NAT</b> networking, the host is
+            at <code className="text-blue-400">10.0.2.2</code>. With <b>Bridged</b>,
+            use the host's LAN IP.</li>
+            <li>Configure the guest OS system proxy settings to point at{" "}
+              <code className="text-blue-400">&lt;host-ip&gt;:9090</code> for both HTTP and HTTPS.</li>
+            <li>Alternatively, set environment variables for CLI tools:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>export HTTP_PROXY=http://10.0.2.2:9090\{"\n"}export HTTPS_PROXY=http://10.0.2.2:9090</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Verify Proxy Configuration",
+      title: "Verify It Works",
       description: (
-        <div>
-          <p>
-            Open your web browser and navigate to{" "}
-            <a
-              href="http://example.com"
-              className="text-blue-400 hover:underline"
-            >
-              http://example.com
-            </a>{" "}
-            to ensure the proxy settings are correctly configured.
-          </p>
-          <p className="mt-2">
-            You should see the traffic being captured by NetworkSpy.
-          </p>
+        <div className="space-y-3">
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              In the VM, open a browser and visit{" "}
+              <code className="text-blue-400 text-[11px]">https://example.com</code>.
+              The page should load without certificate errors.
+            </li>
+            <li>
+              In NetworkSpy on the host, the request should appear in the traffic list.
+            </li>
+          </ol>
         </div>
       ),
     },
@@ -145,7 +126,7 @@ export function VirtualBoxInstaller() {
     <Guide
       platform="VirtualBox"
       icon={<SiVirtualbox size={32} />}
-      steps={VirtualBoxSteps}
+      steps={vbSteps}
     />
   );
 }

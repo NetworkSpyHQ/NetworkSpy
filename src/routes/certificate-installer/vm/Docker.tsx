@@ -2,137 +2,127 @@ import { SiDocker } from "react-icons/si";
 import Guide, { GuideStep } from "../Guide";
 
 export function DockerInstaller() {
-  const DockerSteps: GuideStep[] = [
+  const dockerSteps: GuideStep[] = [
     {
-      title: "Download and Install NetworkSpy",
+      title: "What This Does",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit the NetworkSpy website and download the installer for Docker:{" "}
-            <a
-              href="https://NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              https://NetworkSpy.io
-            </a>
+            To intercept HTTPS traffic from processes running inside Docker containers,
+            NetworkSpy acts as a proxy on your host machine. Each container routes its
+            traffic through the host, and NetworkSpy decrypts TLS using its root CA.
           </p>
-          <p className="mt-2">
-            Open a terminal and navigate to the download directory. Run the
-            following commands to install NetworkSpy:
+          <p>
+            The container needs two things: the CA certificate installed in its trust
+            store, and its HTTP traffic proxied through the host.
           </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <code>sudo dpkg -i NetworkSpy-setup.deb</code>
-            </p>
-            <p>
-              <code>sudo apt-get install -f</code>
-            </p>
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Certificate Location (host)</p>
+            <code className="text-[11px] text-blue-400 break-all">
+              ~/.network-spy/ca/network-spy.crt
+            </code>
           </div>
         </div>
       ),
     },
     {
-      title: "Install Root NetworkSpy Certificate",
+      title: "Copy Certificate Into the Container",
       description: (
-        <div>
-          <p>Open NetworkSpy and go to:</p>
-          <p className="mt-2 font-medium">
-            Preferences &gt; Certificates &gt; Install Certificate
+        <div className="space-y-3">
+          <p>
+            Use <code className="text-blue-400">docker cp</code> to copy the cert
+            from the host into a running container:
           </p>
-          <p className="mt-2">
-            Follow the prompts to install the root certificate and ensure it is
-            trusted by your system.
+          <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
+            <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+              <code>docker cp ~/.network-spy/ca/network-spy.crt \{"\n"}  my-container:/usr/local/share/ca-certificates/network-spy.crt</code>
+            </pre>
+          </div>
+          <p className="text-[11px] text-zinc-500">
+            In a Dockerfile, add it during the build:
           </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2 flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Installed & Trusted!</span>
+          <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-2">
+            <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+              <code>COPY network-spy.crt /usr/local/share/ca-certificates/network-spy.crt\{"\n"}RUN update-ca-certificates</code>
+            </pre>
           </div>
         </div>
       ),
     },
     {
-      title: "Config Proxy Settings on Docker",
+      title: "Install Certificate in the Container",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Open <span className="font-medium">Settings</span> &gt;{" "}
-            <span className="font-medium">Network</span>.
+            The installation command depends on the container's base image:
           </p>
-          <p className="mt-2">
-            Select your active network connection and click
-            <span className="font-medium"> Network Proxy</span>.
-          </p>
-          <p className="mt-2">Configure the following:</p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <span className="font-medium">HTTP Proxy:</span> 192.168.1.4 port 9090
-            </p>
-            <p>
-              <span className="font-medium">HTTPS Proxy:</span> 192.168.1.4 port 9090
-            </p>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Debian / Ubuntu based</p>
+            <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
+              <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                <code>docker exec my-container sh -c \{"\n"}  "cp /usr/local/share/ca-certificates/network-spy.crt \{"\n"}   /usr/local/share/ca-certificates/ && \{"\n"}   update-ca-certificates"</code>
+              </pre>
+            </div>
           </div>
-          <p className="mt-2">
-            Ensure <span className="font-medium">Use the same proxy for all protocols</span> is checked.
-          </p>
-          <p className="mt-2">Click <span className="font-medium">Apply</span> to save the changes.</p>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Alpine based</p>
+            <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
+              <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                <code>docker exec my-container sh -c \{"\n"}  "cp network-spy.crt /usr/local/share/ca-certificates/ && \{"\n"}   update-ca-certificates"</code>
+              </pre>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">RHEL / Fedora based</p>
+            <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
+              <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                <code>docker exec my-container sh -c \{"\n"}  "cp network-spy.crt /etc/pki/ca-trust/source/anchors/ && \{"\n"}   update-ca-trust"</code>
+              </pre>
+            </div>
+          </div>
         </div>
       ),
     },
     {
-      title: "Open Google Web Browser on Docker",
+      title: "Configure Proxy in the Container",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit Website:{" "}
-            <a
-              href="http://cert.NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              http://cert.NetworkSpy.io
-            </a>
+            Set environment variables so the container routes HTTP(S) traffic through
+            NetworkSpy on the host:
           </p>
-          <p className="mt-2">
-            Let it install the 'NetworkSpy CA' certificate and follow the prompts.
-          </p>
-          <p className="mt-2">
-            If you could not download the certificate, please read the
-            "Troubleshooting Page".
+          <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
+            <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+              <code>docker run -e HTTP_PROXY=http://host.docker.internal:9090 \{"\n"}  -e HTTPS_PROXY=http://host.docker.internal:9090 \{"\n"}  -e NO_PROXY=localhost,127.0.0.1 \{"\n"}  my-image</code>
+            </pre>
+          </div>
+          <p className="text-[11px] text-zinc-500 mt-2">
+            <code className="text-zinc-400">host.docker.internal</code> resolves to the
+            host from inside a container (Docker Desktop on Mac/Windows). On Linux, use{" "}
+            <code className="text-zinc-400">172.17.0.1</code> (the default Docker bridge
+            gateway) or add <code className="text-zinc-400">--add-host=host.docker.internal:host-gateway</code>.
           </p>
         </div>
       ),
     },
     {
-      title: "Trust NetworkSpy Certificate in System Settings",
+      title: "Verify It Works",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">System Settings</span> &gt;{" "}
-            <span className="font-medium">Privacy & Security</span> &gt;{" "}
-            <span className="font-medium">Certificates</span>.
-          </p>
-          <p className="mt-2">
-            Add the NetworkSpy CA certificate to the list of trusted certificates.
-          </p>
-        </div>
-      ),
-    },
-    {
-      title: "Verify Proxy Configuration",
-      description: (
-        <div>
-          <p>
-            Open your web browser and navigate to{" "}
-            <a
-              href="http://example.com"
-              className="text-blue-400 hover:underline"
-            >
-              http://example.com
-            </a>{" "}
-            to ensure the proxy settings are correctly configured.
-          </p>
-          <p className="mt-2">
-            You should see the traffic being captured by NetworkSpy.
-          </p>
+        <div className="space-y-3">
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              Inside the container, run{" "}
+              <code className="text-blue-400 text-[11px]">curl -v https://example.com</code>.
+              The output should show <b>"NetworkSpy CA"</b> in the certificate chain
+              and the request should succeed.
+            </li>
+            <li>
+              In NetworkSpy on the host, the request should appear in the traffic list.
+            </li>
+          </ol>
         </div>
       ),
     },
@@ -142,7 +132,7 @@ export function DockerInstaller() {
     <Guide
       platform="Docker"
       icon={<SiDocker size={32} />}
-      steps={DockerSteps}
+      steps={dockerSteps}
     />
   );
 }

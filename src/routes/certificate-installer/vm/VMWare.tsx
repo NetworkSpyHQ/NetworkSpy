@@ -2,136 +2,108 @@ import { SiVmware } from "react-icons/si";
 import Guide, { GuideStep } from "../Guide";
 
 export function VMWareInstaller() {
-  const VMWareSteps: GuideStep[] = [
+  const vmwSteps: GuideStep[] = [
     {
-      title: "Download and Install NetworkSpy",
+      title: "What This Does",
       description: (
-        <div>
+        <div className="space-y-3">
           <p>
-            Visit the NetworkSpy website and download the installer for VMWare:{" "}
-            <a
-              href="https://NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              https://NetworkSpy.io
-            </a>
+            To intercept HTTPS traffic from a VMware virtual machine, NetworkSpy runs
+            on your host and acts as a proxy. The VM routes traffic through the host,
+            and NetworkSpy decrypts TLS using its root CA.
           </p>
-          <p className="mt-2">
-            Open a terminal and navigate to the download directory. Run the
-            following commands to install NetworkSpy:
-          </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <code>sudo dpkg -i NetworkSpy-setup.deb</code>
-            </p>
-            <p>
-              <code>sudo apt-get install -f</code>
-            </p>
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4 mt-3">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Certificate Location (host)</p>
+            <code className="text-[11px] text-blue-400 break-all">
+              ~/.network-spy/ca/network-spy.crt
+            </code>
           </div>
         </div>
       ),
     },
     {
-      title: "Install Root NetworkSpy Certificate",
+      title: "Transfer Certificate Into the VM",
       description: (
-        <div>
-          <p>Open NetworkSpy and go to:</p>
-          <p className="mt-2 font-medium">
-            Preferences &gt; Certificates &gt; Install Certificate
-          </p>
-          <p className="mt-2">
-            Follow the prompts to install the root certificate and ensure it is
-            trusted by your system.
-          </p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2 flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Installed & Trusted!</span>
-          </div>
+        <div className="space-y-3">
+          <p>Get the cert file into the guest OS:</p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              <b>Shared Folders</b>: In VMware, go to VM Settings → Options →
+              Shared Folders. Enable and map to <code className="text-blue-400 text-[11px]">~/.network-spy/ca/</code>.
+            </li>
+            <li>
+              <b>Drag & Drop</b>: Enable in VM Settings → Options → Guest Isolation,
+              then drag <code className="text-blue-400 text-[11px]">network-spy.crt</code> into the VM.
+            </li>
+            <li>
+              <b>SCP</b>: If SSH is enabled in the guest:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>scp ~/.network-spy/ca/network-spy.crt user@vm-ip:~/</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Config Proxy Settings on VMWare",
+      title: "Install Certificate in the VM",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">Settings</span> &gt;{" "}
-            <span className="font-medium">Network</span>.
-          </p>
-          <p className="mt-2">
-            Select your active network connection and click
-            <span className="font-medium"> Network Proxy</span>.
-          </p>
-          <p className="mt-2">Configure the following:</p>
-          <div className="bg-gray-800 p-4 rounded-md mt-2">
-            <p>
-              <span className="font-medium">HTTP Proxy:</span> 192.168.1.4 port 9090
-            </p>
-            <p>
-              <span className="font-medium">HTTPS Proxy:</span> 192.168.1.4 port 9090
-            </p>
-          </div>
-          <p className="mt-2">
-            Ensure <span className="font-medium">Use the same proxy for all protocols</span> is checked.
-          </p>
-          <p className="mt-2">Click <span className="font-medium">Apply</span> to save the changes.</p>
-        </div>
-      ),
-    },
-    {
-      title: "Open Google Web Browser on VMWare",
-      description: (
-        <div>
-          <p>
-            Visit Website:{" "}
-            <a
-              href="http://cert.NetworkSpy.io"
-              className="text-blue-400 hover:underline"
-            >
-              http://cert.NetworkSpy.io
-            </a>
-          </p>
-          <p className="mt-2">
-            Let it install the 'NetworkSpy CA' certificate and follow the prompts.
-          </p>
-          <p className="mt-2">
-            If you could not download the certificate, please read the
-            "Troubleshooting Page".
+        <div className="space-y-3">
+          <p>Install the cert according to the guest OS:</p>
+          <ul className="list-disc list-inside space-y-2 text-[12px] text-zinc-400 ml-2">
+            <li>
+              <b>Windows guest</b> → Double-click the <code className="text-blue-400">.crt</code> file,
+              "Install Certificate" → Current User → Trusted Root Certification Authorities.
+            </li>
+            <li>
+              <b>Linux guest</b> → <code className="text-blue-400">sudo cp network-spy.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates</code>.
+            </li>
+            <li>
+              <b>macOS guest</b> → Double-click, Keychain Access, set "Always Trust".
+            </li>
+          </ul>
+          <p className="text-[11px] text-zinc-500 mt-2">
+            See the sidebar for your guest OS for detailed, browser-specific instructions.
           </p>
         </div>
       ),
     },
     {
-      title: "Trust NetworkSpy Certificate in System Settings",
+      title: "Configure Proxy in the VM",
       description: (
-        <div>
-          <p>
-            Open <span className="font-medium">System Settings</span> &gt;{" "}
-            <span className="font-medium">Privacy & Security</span> &gt;{" "}
-            <span className="font-medium">Certificates</span>.
-          </p>
-          <p className="mt-2">
-            Add the NetworkSpy CA certificate to the list of trusted certificates.
-          </p>
+        <div className="space-y-3">
+          <p>Route VM traffic through NetworkSpy on the host:</p>
+          <ol className="list-decimal list-inside space-y-2 text-[12px] text-zinc-400">
+            <li>
+              Find your host's IP from the VM's perspective. With <b>NAT</b> networking,
+              it's typically <code className="text-blue-400">192.168.x.1</code> (the VMnet gateway).
+              With <b>Bridged</b>, use the host's LAN IP.
+            </li>
+            <li>
+              Configure the guest OS proxy settings to{" "}
+              <code className="text-blue-400">&lt;host-ip&gt;:9090</code> for HTTP and HTTPS.
+            </li>
+            <li>
+              For CLI tools:
+              <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden mt-1">
+                <pre className="p-3 text-[11px] font-mono text-green-400/80 overflow-x-auto">
+                  <code>export HTTP_PROXY=http://&lt;host-ip&gt;:9090\{"\n"}export HTTPS_PROXY=http://&lt;host-ip&gt;:9090</code>
+                </pre>
+              </div>
+            </li>
+          </ol>
         </div>
       ),
     },
     {
-      title: "Verify Proxy Configuration",
+      title: "Verify It Works",
       description: (
-        <div>
-          <p>
-            Open your web browser and navigate to{" "}
-            <a
-              href="http://example.com"
-              className="text-blue-400 hover:underline"
-            >
-              http://example.com
-            </a>{" "}
-            to ensure the proxy settings are correctly configured.
-          </p>
-          <p className="mt-2">
-            You should see the traffic being captured by NetworkSpy.
+        <div className="space-y-3">
+          <p className="text-[12px] text-zinc-400">
+            In the VM browser, visit <code className="text-blue-400">https://example.com</code>.
+            No cert warning = working. The request should appear in NetworkSpy.
           </p>
         </div>
       ),
@@ -140,9 +112,9 @@ export function VMWareInstaller() {
 
   return (
     <Guide
-      platform="VMWare"
+      platform="VMware"
       icon={<SiVmware size={32} />}
-      steps={VMWareSteps}
+      steps={vmwSteps}
     />
   );
 }
