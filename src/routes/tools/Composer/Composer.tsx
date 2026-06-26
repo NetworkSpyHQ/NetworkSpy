@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ToolBaseHeader } from "@src/packages/ui/ToolBaseHeader";
-import { FiSend, FiMaximize2 } from "react-icons/fi";
+import { FiSend, FiMaximize2, FiSidebar } from "react-icons/fi";
 import { invoke } from "@tauri-apps/api/core";
+import { twMerge } from "tailwind-merge";
 import { Tabs } from "./components/Tabs";
 import { UrlBar } from "./components/UrlBar";
 import type { HttpMethod } from "./components/UrlBar";
@@ -10,9 +11,26 @@ import type { Header } from "./components/RequestView";
 import { ResponseView } from "./components/ResponseView";
 import type { ComposerResponse } from "./components/ResponseView";
 import { parseCurl } from "./components/curlParser";
+import RequestList from "./components/RequestList";
+import type { SavedRequest } from "./components/RequestList";
 
 let headerIdCounter = 0;
 const newHeaderId = () => `hdr_${++headerIdCounter}`;
+let requestIdCounter = 0;
+const newRequestId = () => `req_${Date.now()}_${++requestIdCounter}`;
+
+const defaultHeaders = (): Header[] => [{ id: newHeaderId(), key: "", value: "" }];
+
+const createEmptyRequest = (): SavedRequest => ({
+  id: newRequestId(),
+  name: "",
+  method: "GET",
+  url: "",
+  headers: [],
+  body: null,
+  bodyType: "none",
+  timestamp: Date.now(),
+});
 
 const Composer: React.FC = () => {
   const [method, setMethod] = useState<HttpMethod>("GET");
@@ -30,22 +48,92 @@ const Composer: React.FC = () => {
   const [curlToast, setCurlToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => {
+    const initial = createEmptyRequest();
+    return [initial];
+  });
+  const [activeRequestId, setActiveRequestId] = useState<string>(savedRequests[0].id);
+  const [isSidebarCompact, setIsSidebarCompact] = useState(false);
+
+  const activeRequestRef = useRef(activeRequestId);
+  activeRequestRef.current = activeRequestId;
+
+  const updateActiveRequest = useCallback((updater: (req: SavedRequest) => SavedRequest) => {
+    setSavedRequests(prev =>
+      prev.map(r => r.id === activeRequestRef.current ? updater(r) : r)
+    );
+  }, []);
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
 
+  const loadRequest = useCallback((req: SavedRequest) => {
+    setMethod(req.method);
+    setUrl(req.url);
+    setUrlError(null);
+    setHeaders(req.headers.length > 0
+      ? req.headers.map(h => ({ id: newHeaderId(), key: h.key, value: h.value }))
+      : defaultHeaders()
+    );
+    setBodyType(req.bodyType);
+    setBodyText(req.body ?? "");
+    setActiveRequestId(req.id);
+    setResponse(null);
+    setError(null);
+    setActiveMainTab("request");
+  }, []);
+
+  const handleNewRequest = () => {
+    const req = createEmptyRequest();
+    setSavedRequests(prev => [...prev, req]);
+    loadRequest(req);
+  };
+
+  const handleSelectRequest = (req: SavedRequest) => {
+    if (req.id === activeRequestId) return;
+    loadRequest(req);
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    setSavedRequests(prev => {
+      const remaining = prev.filter(r => r.id !== id);
+      if (remaining.length === 0) {
+        const fresh = createEmptyRequest();
+        loadRequest(fresh);
+        return [fresh];
+      }
+      if (id === activeRequestId) {
+        loadRequest(remaining[0]);
+      }
+      return remaining;
+    });
+  };
+
   const handleAddHeader = () => {
-    setHeaders(prev => [...prev, { id: newHeaderId(), key: "", value: "" }]);
+    setHeaders(prev => {
+      const next = [...prev, { id: newHeaderId(), key: "", value: "" }];
+      updateActiveRequest(r => ({ ...r, headers: next.map(h => ({ key: h.key, value: h.value })) }));
+      return next;
+    });
   };
 
   const handleRemoveHeader = (id: string) => {
-    setHeaders(prev => prev.filter(h => h.id !== id));
+    setHeaders(prev => {
+      const next = prev.filter(h => h.id !== id);
+      updateActiveRequest(r => ({ ...r, headers: next.map(h => ({ key: h.key, value: h.value })) }));
+      return next;
+    });
   };
 
   const handleHeaderChange = (id: string, field: "key" | "value", val: string) => {
-    setHeaders(prev => prev.map(h => h.id === id ? { ...h, [field]: val } : h));
+    setHeaders(prev => {
+      const next = prev.map(h => h.id === id ? { ...h, [field]: val } : h);
+      updateActiveRequest(r => ({ ...r, headers: next.map(h => ({ key: h.key, value: h.value })) }));
+      return next;
+    });
   };
 
   const validateUrl = (value: string): string | null => {
@@ -71,6 +159,7 @@ const Composer: React.FC = () => {
   const handleUrlChange = (value: string) => {
     setUrl(value);
     setUrlError(validateUrl(value));
+    updateActiveRequest(r => ({ ...r, url: value }));
 
     if (value.trim().toLowerCase().startsWith("curl ")) {
       try {
@@ -80,21 +169,31 @@ const Composer: React.FC = () => {
           setMethod(upperMethod);
           setUrl(parsed.url);
           setUrlError(null);
+          updateActiveRequest(r => ({ ...r, method: upperMethod, url: parsed.url }));
 
           if (parsed.headers.length > 0) {
-            setHeaders(parsed.headers.map(h => ({ id: newHeaderId(), key: h.key, value: h.value })));
+            const newHeaders = parsed.headers.map(h => ({ id: newHeaderId(), key: h.key, value: h.value }));
+            setHeaders(newHeaders);
+            updateActiveRequest(r => ({ ...r, headers: parsed.headers }));
           }
 
           if (parsed.body) {
             const isJson = parsed.headers.some(h => h.key.toLowerCase() === "content-type" && h.value.toLowerCase().includes("json"));
-            setBodyType(isJson ? "json" : "text");
+            const bt = isJson ? "json" as const : "text" as const;
+            setBodyType(bt);
+            let displayBody: string;
             try {
-              setBodyText(JSON.stringify(JSON.parse(parsed.body), null, 2));
+              displayBody = JSON.stringify(JSON.parse(parsed.body), null, 2);
             } catch {
-              setBodyText(parsed.body);
+              displayBody = parsed.body;
             }
+            setBodyText(displayBody);
             setActiveRequestTab("body");
+            updateActiveRequest(r => ({ ...r, body: displayBody, bodyType: bt }));
           }
+
+          const name = `${upperMethod} ${parsed.url.length > 60 ? parsed.url.slice(0, 57) + "..." : parsed.url}`;
+          updateActiveRequest(r => ({ ...r, name: r.name || name }));
 
           showCurlToast("cURL imported — " + upperMethod + " " + parsed.url);
         }
@@ -104,6 +203,21 @@ const Composer: React.FC = () => {
     }
   };
 
+  const handleMethodChange = (m: HttpMethod) => {
+    setMethod(m);
+    updateActiveRequest(r => ({ ...r, method: m }));
+  };
+
+  const handleBodyTypeChange = (bt: "none" | "text" | "json") => {
+    setBodyType(bt);
+    updateActiveRequest(r => ({ ...r, bodyType: bt }));
+  };
+
+  const handleBodyTextChange = (value: string) => {
+    setBodyText(value);
+    updateActiveRequest(r => ({ ...r, body: value }));
+  };
+
   const handleSend = async () => {
     if (!url.trim() || urlError) return;
     setIsSending(true);
@@ -111,6 +225,18 @@ const Composer: React.FC = () => {
     setResponse(null);
 
     const validHeaders = headers.filter(h => h.key.trim());
+
+    const name = `${method} ${url.trim().length > 60 ? url.trim().slice(0, 57) + "..." : url.trim()}`;
+    updateActiveRequest(r => ({
+      ...r,
+      name: r.name || name,
+      headers: validHeaders.map(h => ({ key: h.key, value: h.value })),
+      body: bodyType !== "none" ? bodyText : null,
+      bodyType,
+      method,
+      url: url.trim(),
+      timestamp: Date.now(),
+    }));
 
     try {
       const res = await invoke<ComposerResponse>("send_composer_request", {
@@ -146,73 +272,105 @@ const Composer: React.FC = () => {
 
   const isJSONResponse = response?.content_type.toLowerCase().includes("json") ?? false;
 
-  return (
-    <div className="flex flex-col h-full bg-[#050505] relative overflow-hidden">
-      <ToolBaseHeader
-        title="Composer"
-        description="Build and send HTTP requests"
-        icon={<FiSend size={22} className="text-blue-500" />}
-        actions={
-          <button
-            onClick={() => window.open("/composer", "_blank")}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all active:scale-95"
-            title="Open in new window"
-          >
-            <FiMaximize2 size={16} />
-          </button>
-        }
-      />
+  const sidebarToggle = (
+    <button
+      onClick={() => setIsSidebarCompact(v => !v)}
+      className={twMerge(
+        "p-1.5 rounded-lg transition-all",
+        isSidebarCompact
+          ? "text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/50"
+          : "text-blue-500 bg-blue-600/10 hover:bg-blue-600/20"
+      )}
+      title={isSidebarCompact ? "Show request list" : "Hide request list"}
+    >
+      <FiSidebar size={16} />
+    </button>
+  );
 
-      <div className="flex flex-col flex-grow min-h-0 overflow-hidden">
-        <UrlBar
-          method={method}
-          onMethodChange={setMethod}
-          url={url}
-          urlError={urlError}
-          onUrlChange={handleUrlChange}
-          onKeyDown={handleKeyDown}
-          onSend={handleSend}
-          isSending={isSending}
+  return (
+    <div className="flex h-full bg-[#050505] relative overflow-hidden">
+      <div className={twMerge(
+        "border-r border-zinc-900 flex flex-col h-full bg-[#080808] transition-all duration-300",
+        isSidebarCompact ? "w-14" : "w-64"
+      )}>
+        <RequestList
+          requests={savedRequests}
+          activeRequestId={activeRequestId}
+          onSelect={handleSelectRequest}
+          onDelete={handleDeleteRequest}
+          onNewRequest={handleNewRequest}
+          isCompact={isSidebarCompact}
+          onToggleCompact={() => setIsSidebarCompact(v => !v)}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-hidden">
+        <ToolBaseHeader
+          title={<div className="flex items-center gap-3">{sidebarToggle}<span>Composer</span></div>}
+          description="Build and send HTTP requests"
+          icon={<FiSend size={22} className="text-blue-500" />}
+          actions={
+            <button
+              onClick={() => window.open("/composer", "_blank")}
+              className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all active:scale-95"
+              title="Open in new window"
+            >
+              <FiMaximize2 size={16} />
+            </button>
+          }
         />
 
-        <div className="flex-shrink-0 px-3 pt-2">
-          <Tabs
-            tabs={[
-              { key: "request", label: "Request" },
-              { key: "response", label: "Response" },
-            ]}
-            activeKey={activeMainTab}
-            onChange={setActiveMainTab}
-            size="md"
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <UrlBar
+            method={method}
+            onMethodChange={handleMethodChange}
+            url={url}
+            urlError={urlError}
+            onUrlChange={handleUrlChange}
+            onKeyDown={handleKeyDown}
+            onSend={handleSend}
+            isSending={isSending}
           />
-        </div>
 
-        <div className="flex-1 min-h-0 px-3 py-2">
-          {activeMainTab === "request" && (
-            <RequestView
-              activeRequestTab={activeRequestTab}
-              onRequestTabChange={setActiveRequestTab}
-              headers={headers}
-              onAddHeader={handleAddHeader}
-              onRemoveHeader={handleRemoveHeader}
-              onHeaderChange={handleHeaderChange}
-              bodyType={bodyType}
-              onBodyTypeChange={setBodyType}
-              bodyText={bodyText}
-              onBodyTextChange={setBodyText}
+          <div className="flex-shrink-0 px-3 pt-2">
+            <Tabs
+              tabs={[
+                { key: "request", label: "Request" },
+                { key: "response", label: "Response" },
+              ]}
+              activeKey={activeMainTab}
+              onChange={setActiveMainTab}
+              size="md"
             />
-          )}
+          </div>
 
-          {activeMainTab === "response" && (
-            <ResponseView
-              response={response}
-              error={error}
-              activeResponseTab={activeResponseTab}
-              onResponseTabChange={setActiveResponseTab}
-              responseBodyString={responseBodyString}
-              isJSONResponse={isJSONResponse}
-            />
-          )}
+          <div className="flex-1 min-h-0 px-3 py-2">
+            {activeMainTab === "request" && (
+              <RequestView
+                activeRequestTab={activeRequestTab}
+                onRequestTabChange={setActiveRequestTab}
+                headers={headers}
+                onAddHeader={handleAddHeader}
+                onRemoveHeader={handleRemoveHeader}
+                onHeaderChange={handleHeaderChange}
+                bodyType={bodyType}
+                onBodyTypeChange={handleBodyTypeChange}
+                bodyText={bodyText}
+                onBodyTextChange={handleBodyTextChange}
+              />
+            )}
+
+            {activeMainTab === "response" && (
+              <ResponseView
+                response={response}
+                error={error}
+                activeResponseTab={activeResponseTab}
+                onResponseTabChange={setActiveResponseTab}
+                responseBodyString={responseBodyString}
+                isJSONResponse={isJSONResponse}
+              />
+            )}
+          </div>
         </div>
       </div>
 
