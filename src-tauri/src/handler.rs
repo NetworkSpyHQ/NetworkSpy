@@ -111,6 +111,9 @@ macro_rules! generate_handler {
             crate::commands::delete_composer_request,
             crate::commands::save_composer_request,
             crate::commands::detect_devices,
+            crate::commands::adb_device_start_proxy,
+            crate::commands::adb_device_stop_proxy,
+            crate::commands::get_adb_proxy_serials,
         ]
     };
 }

@@ -1,8 +1,17 @@
 use serde::{Serialize, Deserialize};
 use std::sync::OnceLock;
+use std::sync::Mutex;
+use std::collections::HashSet;
 use tauri::Emitter;
+use crate::utils::ACTUAL_PORT;
+use std::sync::atomic::Ordering;
 
 static MONITOR_STARTED: OnceLock<bool> = OnceLock::new();
+static ADB_REVERSE_ACTIVE: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+
+fn adb_reverse_state() -> &'static Mutex<HashSet<String>> {
+    ADB_REVERSE_ACTIVE.get_or_init(|| Mutex::new(HashSet::new()))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DeviceInfo {
@@ -100,4 +109,44 @@ fn parse_adb_devices(output: &str) -> Vec<DeviceInfo> {
     }
 
     devices
+}
+
+fn run_adb(serial: &str, args: &[&str]) -> Result<(), String> {
+    let mut cmd = std::process::Command::new("adb");
+    cmd.arg("-s").arg(serial);
+    for arg in args {
+        cmd.arg(arg);
+    }
+    let output = cmd.output().map_err(|e| format!("Failed to run adb: {}", e))?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn adb_device_start_proxy(serial: String) -> Result<(), String> {
+    let port = ACTUAL_PORT.load(Ordering::SeqCst);
+
+    run_adb(&serial, &["reverse", &format!("tcp:{}", port), &format!("tcp:{}", port)])?;
+    run_adb(&serial, &["shell", "settings", "put", "global", "http_proxy", &format!("127.0.0.1:{}", port)])?;
+
+    adb_reverse_state().lock().unwrap().insert(serial);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn adb_device_stop_proxy(serial: String) -> Result<(), String> {
+    let port = ACTUAL_PORT.load(Ordering::SeqCst);
+
+    let _ = run_adb(&serial, &["shell", "settings", "put", "global", "http_proxy", ":0"]);
+    let _ = run_adb(&serial, &["reverse", "--remove", &format!("tcp:{}", port)]);
+
+    adb_reverse_state().lock().unwrap().remove(&serial);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_adb_proxy_serials() -> Vec<String> {
+    adb_reverse_state().lock().unwrap().iter().cloned().collect()
 }
