@@ -124,12 +124,25 @@ fn run_adb(serial: &str, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+fn notify_device(serial: &str, title: &str, text: &str) {
+    let _ = std::process::Command::new("adb")
+        .args(["-s", serial, "shell"])
+        .arg(format!(
+            "cmd notification post -S bigtext -t '{}' networkspy_proxy '{}'",
+            title.replace('\'', "'\\''"),
+            text.replace('\'', "'\\''"),
+        ))
+        .output();
+}
+
 #[tauri::command]
 pub fn adb_device_start_proxy(serial: String) -> Result<(), String> {
     let port = ACTUAL_PORT.load(Ordering::SeqCst);
 
     run_adb(&serial, &["reverse", &format!("tcp:{}", port), &format!("tcp:{}", port)])?;
     run_adb(&serial, &["shell", "settings", "put", "global", "http_proxy", &format!("127.0.0.1:{}", port)])?;
+
+    notify_device(&serial, "NetworkSpy", &format!("Proxy connected on port {}", port));
 
     adb_reverse_state().lock().unwrap().insert(serial);
     Ok(())
@@ -141,6 +154,8 @@ pub fn adb_device_stop_proxy(serial: String) -> Result<(), String> {
 
     let _ = run_adb(&serial, &["shell", "settings", "put", "global", "http_proxy", ":0"]);
     let _ = run_adb(&serial, &["reverse", "--remove", &format!("tcp:{}", port)]);
+
+    notify_device(&serial, "NetworkSpy", "Proxy disconnected");
 
     adb_reverse_state().lock().unwrap().remove(&serial);
     Ok(())
