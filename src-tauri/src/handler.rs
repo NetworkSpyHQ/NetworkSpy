@@ -110,6 +110,7 @@ macro_rules! generate_handler {
             crate::commands::save_all_composer_requests,
             crate::commands::delete_composer_request,
             crate::commands::save_composer_request,
+            crate::commands::detect_devices,
         ]
     };
 }

@@ -13,6 +13,7 @@ pub mod composer;
 pub mod browser;
 pub mod workspace;
 pub mod window;
+pub mod device;
 
 pub use clipboard::*;
 pub use proxy::*;
@@ -29,6 +30,7 @@ pub use composer::*;
 pub use browser::*;
 pub use workspace::*;
 pub use window::*;
+pub use device::*;
 
 use once_cell::sync::OnceCell;
 use crate::proxy_toggle::ProxyToggle;

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { FiX, FiPlay, FiPause, FiTrash2, FiSave, FiMonitor, FiLayout, FiSidebar, FiColumns, FiPlus, FiCommand } from 'react-icons/fi';
+import { listen } from '@tauri-apps/api/event';
+import { FiX, FiPlay, FiPause, FiTrash2, FiSave, FiMonitor, FiLayout, FiSidebar, FiColumns, FiPlus, FiCommand, FiSmartphone } from 'react-icons/fi';
 import { useAppProvider } from '../app-env';
 import { useSessionContext } from '@src/context/SessionContext';
 import { usePaneContext } from '@src/context/PaneProvider';
@@ -15,6 +17,15 @@ import { invoke } from '@tauri-apps/api/core';
 import { TitleBarCustomMenuTool } from './TitleBarCustomMenuTool';
 import { TitleBarPlatformControls } from './TitleBarPlatformControls';
 import { useLicense } from '@src/hooks/useLicense';
+
+interface DeviceInfo {
+  serial: string;
+  status: string;
+  model: string | null;
+  product: string | null;
+  transport_id: string | null;
+  usb: string | null;
+}
 
 const appWindow = getCurrentWindow();
 
@@ -33,6 +44,8 @@ const TitleBarTraffic: React.FC = () => {
 
   const [isPortDialogOpen, setIsPortDialogOpen] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [isDeviceDialogOpen, setIsDeviceDialogOpen] = useState(false);
 
   useEffect(() => {
     const unlisten = appWindow.onResized(async () => {
@@ -133,6 +146,16 @@ const TitleBarTraffic: React.FC = () => {
   useEffect(() => {
     invoke<string | null>('get_current_workspace').then(setCurrentWorkspace);
   }, []);
+
+  useEffect(() => {
+    invoke<DeviceInfo[]>('detect_devices').then(setDevices);
+    const unlisten = listen<DeviceInfo[]>('device-list-changed', (event) => {
+      setDevices(event.payload);
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
+
+  const connectedDevices = devices.filter(d => d.status === 'device');
 
   const { plan, isVerified } = useSettingsContext();
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
@@ -335,6 +358,13 @@ const TitleBarTraffic: React.FC = () => {
           />
         </div>
 
+          <ActionButton
+            icon={FiSmartphone}
+            active={connectedDevices.length > 0}
+            variant={connectedDevices.length > 0 ? 'success' : 'default'}
+            label={connectedDevices.length > 0 ? `${connectedDevices.length} device(s) connected` : "No device detected"}
+            onClick={() => setIsDeviceDialogOpen(true)}
+          />
         <TitleBarPlatformControls />
       </div>
 
@@ -361,6 +391,77 @@ const TitleBarTraffic: React.FC = () => {
         isOpen={isUpgradeDialogOpen}
         onClose={() => setIsUpgradeDialogOpen(false)}
       />
+
+      {isDeviceDialogOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-96 bg-[#1a1a1a] border border-zinc-800 rounded-2xl shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider">Connected Devices</h2>
+              <button onClick={() => setIsDeviceDialogOpen(false)} className="text-zinc-500 hover:text-zinc-300 transition-colors p-1">
+                <FiX size={16} />
+              </button>
+            </div>
+
+            {devices.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-8 text-zinc-500">
+                <FiSmartphone size={32} className="opacity-40" />
+                <p className="text-xs font-medium">No devices detected</p>
+                <p className="text-[10px] text-zinc-600">Connect an Android device via USB and enable USB debugging</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                {devices.map((device) => (
+                  <div
+                    key={device.serial}
+                    className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3"
+                  >
+                    <span className={twMerge(
+                      "w-2 h-2 rounded-full shrink-0",
+                      device.status === 'device' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-zinc-600"
+                    )} />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-xs font-bold text-zinc-200 truncate">
+                        {device.model || device.serial}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 truncate">
+                        {device.serial}{device.product ? ` - ${device.product}` : ''}
+                      </span>
+                    </div>
+                    <span className={twMerge(
+                      "text-[10px] font-bold uppercase tracking-wider",
+                      device.status === 'device' ? "text-emerald-500" : "text-zinc-500"
+                    )}>
+                      {device.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 mt-2">
+              <button
+                onClick={() => {
+                  setIsDeviceDialogOpen(false);
+                  invoke<DeviceInfo[]>('detect_devices').then(setDevices);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+              >
+                Refresh
+              </button>
+              <button
+                onClick={() => setIsDeviceDialogOpen(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
