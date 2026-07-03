@@ -69,6 +69,17 @@ if ([string]::IsNullOrWhiteSpace($Version) -or $Version -eq "latest") {
 }
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
+    Write-Host "[WARN] networkspy.app returned no version. Falling back to GitHub API..." -ForegroundColor Yellow
+    try {
+        $GITHUB_RELEASE = Invoke-RestMethod -Uri "https://api.github.com/repos/muizidn/NetworkSpy/releases/latest" -Method Get -ErrorAction Stop
+        $Version = $GITHUB_RELEASE.tag_name
+    } catch {
+        Write-Host "[ERROR] Could not determine version to install." -ForegroundColor Red
+        exit 1
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
     Write-Host "[ERROR] Could not determine version to install." -ForegroundColor Red
     exit 1
 }

@@ -49,7 +49,24 @@ fi
 # 2. Version Detection
 if [ -z "$VERSION" ] || [ "$VERSION" = "latest" ]; then
     echo "🔍 Fetching latest version info..."
-    VERSION=$(curl -s "https://networkspy.app/latest" | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+    if command -v jq &>/dev/null; then
+        VERSION=$(curl -s "https://networkspy.app/latest" | jq -r '.version // empty' 2>/dev/null || true)
+    elif command -v python3 &>/dev/null; then
+        VERSION=$(curl -s "https://networkspy.app/latest" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version') or '')" 2>/dev/null || true)
+    else
+        VERSION=$(curl -s "https://networkspy.app/latest" | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+    fi
+fi
+
+if [ -z "$VERSION" ]; then
+    echo "⚠️ networkspy.app returned no version. Falling back to GitHub API..."
+    if command -v jq &>/dev/null; then
+        VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | jq -r '.tag_name // empty' 2>/dev/null || true)
+    elif command -v python3 &>/dev/null; then
+        VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tag_name') or '')" 2>/dev/null || true)
+    else
+        VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+    fi
 fi
 
 if [ -z "$VERSION" ]; then
@@ -57,7 +74,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-echo "📦 Target Version: $VERSION"
+echo "✅ Version resolved: $VERSION"
 echo "💻 Platform: $OS ($ARCH)"
 if [ "$ALLOW_UNSIGNED" = true ]; then
     echo "🛡️  Bypass Mode: Enabled (Quarantine will be removed)"
