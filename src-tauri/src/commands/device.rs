@@ -165,3 +165,64 @@ pub fn adb_device_stop_proxy(serial: String) -> Result<(), String> {
 pub fn get_adb_proxy_serials() -> Vec<String> {
     adb_reverse_state().lock().unwrap().iter().cloned().collect()
 }
+
+#[tauri::command]
+pub fn adb_push_cert(serial: String) -> Result<(), String> {
+    let app_data_dir = crate::commands::window::get_app_data_dir();
+    let cert_path = app_data_dir.join("ca").join("network-spy.crt");
+
+    if !cert_path.exists() {
+        return Err("Certificate not found. Install CA certificate on desktop first.".to_string());
+    }
+
+    let cert_str = cert_path.to_string_lossy().to_string();
+    run_adb(&serial, &["push", &cert_str, "/sdcard/Download/network-spy.crt"])?;
+
+    notify_device(&serial, "NetworkSpy", "CA certificate pushed to device. Open Downloads to install.");
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn adb_check_cert(serial: String) -> bool {
+    let output = std::process::Command::new("adb")
+        .args(["-s", &serial, "shell", "ls", "/sdcard/Download/network-spy.crt"])
+        .output();
+    match output {
+        Ok(out) => out.status.success(),
+        Err(_) => false,
+    }
+}
+
+fn am_start(serial: &str, intent: &str) -> bool {
+    let output = std::process::Command::new("adb")
+        .args(["-s", serial, "shell", "am", "start", intent])
+        .output();
+    match output {
+        Ok(out) => {
+            let s = format!("{}{}",
+                String::from_utf8_lossy(&out.stdout),
+                String::from_utf8_lossy(&out.stderr),
+            );
+            out.status.success() && !s.contains("Error")
+        }
+        Err(_) => false,
+    }
+}
+
+#[tauri::command]
+pub fn adb_open_cert_install(serial: String) -> Result<(), String> {
+    let intents = [
+        "-a android.security.action.INSTALL_CERTIFICATE",
+        "-a android.settings.SECURITY_SETTINGS",
+        "-n com.android.certinstaller/.CertInstallerMain",
+    ];
+
+    for intent in &intents {
+        if am_start(&serial, intent) {
+            return Ok(());
+        }
+    }
+
+    Err("Could not open certificate installer. Please navigate to Settings → Security → Install certificate manually.".to_string())
+}

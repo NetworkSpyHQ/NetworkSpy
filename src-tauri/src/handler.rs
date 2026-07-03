@@ -114,6 +114,9 @@ macro_rules! generate_handler {
             crate::commands::adb_device_start_proxy,
             crate::commands::adb_device_stop_proxy,
             crate::commands::get_adb_proxy_serials,
+            crate::commands::adb_push_cert,
+            crate::commands::adb_check_cert,
+            crate::commands::adb_open_cert_install,
         ]
     };
 }

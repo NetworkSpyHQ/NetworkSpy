@@ -1,7 +1,110 @@
+import { useEffect, useState } from 'react';
 import { SiAndroid } from "react-icons/si";
+import { FiSmartphone, FiCheckCircle, FiLoader } from 'react-icons/fi';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import Guide, { GuideStep } from "../Guide";
+import { twMerge } from 'tailwind-merge';
+
+interface DeviceInfo {
+  serial: string;
+  status: string;
+  model: string | null;
+  product: string | null;
+  transport_id: string | null;
+  usb: string | null;
+}
+
+function useDevices() {
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+
+  useEffect(() => {
+    invoke<DeviceInfo[]>('detect_devices').then(setDevices);
+    const unlisten = listen<DeviceInfo[]>('device-list-changed', (event) => {
+      setDevices(event.payload);
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
+
+  return devices.filter(d => d.status === 'device');
+}
 
 export function AndroidDeviceInstaller() {
+  const devices = useDevices();
+  const [pushing, setPushing] = useState<string | null>(null);
+
+  const connectedLabel = devices.length > 0
+    ? `${devices.length} device${devices.length > 1 ? 's' : ''} connected`
+    : "No device detected";
+
+  const handlePushCert = async (serial: string) => {
+    setPushing(serial);
+    try {
+      await invoke('adb_push_cert', { serial });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPushing(null);
+    }
+  };
+
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  const handleOpenInstall = async (serial: string) => {
+    setInstallError(null);
+    try {
+      await invoke('adb_open_cert_install', { serial });
+    } catch (e) {
+      setInstallError(String(e));
+    }
+  };
+
+  const adbPushBlock = devices.length > 0 ? (
+    <div className="space-y-3">
+      {devices.map(device => (
+        <div key={device.serial} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
+          <FiSmartphone size={16} className="text-emerald-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-bold text-zinc-200 truncate block">
+              {device.model || device.serial}
+            </span>
+            <span className="text-[10px] text-zinc-500 truncate block">
+              {device.serial}
+            </span>
+          </div>
+          <button
+            onClick={() => handlePushCert(device.serial)}
+            disabled={pushing === device.serial}
+            className={twMerge(
+              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+              pushing === device.serial
+                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                : "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 active:scale-95"
+            )}
+          >
+            {pushing === device.serial ? (
+              <FiLoader size={12} className="animate-spin" />
+            ) : (
+              <FiCheckCircle size={12} />
+            )}
+            {pushing === device.serial ? "Pushing..." : "Push Certificate"}
+          </button>
+          <button
+            onClick={() => handleOpenInstall(device.serial)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all active:scale-95"
+          >
+            Open Installer
+          </button>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="flex items-center gap-3 bg-zinc-900/50 border border-dashed border-zinc-800 rounded-xl px-4 py-4">
+      <FiSmartphone size={16} className="text-zinc-600 shrink-0" />
+      <span className="text-xs text-zinc-600">Connect an Android device via ADB to enable push & install buttons</span>
+    </div>
+  );
+
   const androidSteps: GuideStep[] = [
     {
       title: "What This Does",
@@ -31,6 +134,10 @@ export function AndroidDeviceInstaller() {
               guide for your OS from the sidebar.
             </p>
           </div>
+          <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+            <FiSmartphone size={14} className={devices.length > 0 ? "text-emerald-500" : "text-zinc-600"} />
+            <span className={devices.length > 0 ? "text-emerald-500 font-bold" : ""}>{connectedLabel}</span>
+          </div>
         </div>
       ),
     },
@@ -42,11 +149,7 @@ export function AndroidDeviceInstaller() {
 
           <div>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Option A: ADB Push (for developers)</p>
-            <div className="bg-[#0c0c0c] border border-zinc-800 rounded-xl overflow-hidden">
-              <pre className="p-4 text-[11px] font-mono text-green-400/80 overflow-x-auto">
-                <code>adb push ~/.network-spy/ca/network-spy.crt /sdcard/Download/</code>
-              </pre>
-            </div>
+            {adbPushBlock}
           </div>
 
           <div>
@@ -83,6 +186,26 @@ export function AndroidDeviceInstaller() {
       description: (
         <div className="space-y-4">
           <p>The exact steps depend on your Android version:</p>
+
+          {devices.length > 0 && devices.map(device => (
+            <div key={device.serial} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 mb-3">
+              <FiSmartphone size={16} className="text-emerald-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold text-zinc-200 truncate block">
+                  {device.model || device.serial}
+                </span>
+              </div>
+              <button
+                onClick={() => handleOpenInstall(device.serial)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all active:scale-95"
+              >
+                Open Installer
+              </button>
+            </div>
+          ))}
+          {installError && (
+            <p className="text-[10px] text-red-500 font-medium mb-3">{installError}</p>
+          )}
 
           <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg p-4">
             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Android 11 and newer</p>

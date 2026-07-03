@@ -2,6 +2,7 @@ import { useState, ReactNode, useMemo, useEffect } from "react";
 import { type } from "@tauri-apps/plugin-os";
 import { FiSearch, FiMonitor } from "react-icons/fi";
 import { twMerge } from "tailwind-merge";
+import { useSearchParams } from "react-router-dom";
 
 import { WindowsInstaller } from "./computer/Windows";
 import { MacOSInstaller } from "./computer/Mac";
@@ -96,11 +97,14 @@ export const UnifiedCertificateInstaller: React.FC = () => {
     { id: "ruby", title: "Ruby", category: "Development", content: <RubyInstaller />, icon: <SiRuby size={16} /> },
   ];
 
-  const [currentTab, setCurrentTab] = useState(tabs[0].id);
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [currentTab, setCurrentTab] = useState(initialTab || tabs[0].id);
   const [searchTerm, setSearchTerm] = useState("");
   const [detectedOS, setDetectedOS] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialTab) return;
     const detectOS = async () => {
       const osType = await type();
       let targetId = "mac";

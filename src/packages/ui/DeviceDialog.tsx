@@ -94,8 +94,9 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
               return (
                 <div
                   key={device.serial}
+                  onClick={() => invoke('open_new_window', { context: 'certificate-installer?tab=android-device', title: 'Certificate Installer' })}
                   className={twMerge(
-                    "flex items-center gap-3 bg-zinc-900 border rounded-xl px-4 py-3",
+                    "flex items-center gap-3 bg-zinc-900 border rounded-xl px-4 py-3 cursor-pointer hover:bg-zinc-800/80 transition-colors",
                     isActive ? "border-emerald-500/20" : "border-zinc-800"
                   )}
                 >
@@ -113,30 +114,32 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
                       {device.serial}{device.product ? ` - ${device.product}` : ''}
                     </span>
                   </div>
-                  {followRun ? (
-                    <span className={twMerge(
-                      "text-[10px] font-bold uppercase tracking-wider",
-                      isRun ? "text-emerald-500" : "text-zinc-500"
-                    )}>
-                      {isRun ? "Active" : "Inactive"}
-                    </span>
-                  ) : device.status === 'device' ? (
-                    <button
-                      onClick={() => handleToggleProxy(device.serial, isActive)}
-                      className={twMerge(
-                        "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                        isActive
-                          ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
-                          : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
-                      )}
-                    >
-                      {isActive ? "Stop" : "Start"}
-                    </button>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                      {device.status}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {followRun ? (
+                      <span className={twMerge(
+                        "text-[10px] font-bold uppercase tracking-wider",
+                        isRun ? "text-emerald-500" : "text-zinc-500"
+                      )}>
+                        {isRun ? "Active" : "Inactive"}
+                      </span>
+                    ) : device.status === 'device' ? (
+                      <button
+                        onClick={() => handleToggleProxy(device.serial, isActive)}
+                        className={twMerge(
+                          "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                          isActive
+                            ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                            : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
+                        )}
+                      >
+                        {isActive ? "Stop" : "Start"}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        {device.status}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
