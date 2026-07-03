@@ -4,7 +4,7 @@ param (
     [switch]$Force           # Force re-download and re-install
 )
 
-$REPO = "muizidn/NetworkSpy"
+$REPO = "NetworkSpyHQ/NetworkSpy"
 $SCRIPT_BRANCH = "develop"
 
 # Fetch latest commit ID for transparency

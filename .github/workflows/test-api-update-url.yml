@@ -34,7 +34,7 @@ jobs:
             FN="Network.Spy_${VERSION_NUM}_${AK}_en-US.msi"
           fi
 
-          URL="https://github.com/muizidn/NetworkSpy/releases/download/${VERSION_TAG}/${FN}"
+          URL="https://github.com/NetworkSpyHQ/NetworkSpy/releases/download/${VERSION_TAG}/${FN}"
           echo "Platform: ${{ matrix.platform }}"
           echo "Arch: $RAW_ARCH"
           echo "Filename: $FN"

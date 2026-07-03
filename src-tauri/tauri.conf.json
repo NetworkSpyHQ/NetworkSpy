@@ -38,7 +38,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/muizidn/NetworkSpy/releases/latest/download/latest.json"
+        "https://github.com/NetworkSpyHQ/NetworkSpy/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCOUMxMjgzNzA2MkI2NzAKUldSd3RtSndneEtjZTVKeE5ySklXM21Idnk1UFdpSkQ1N0JXNHZ1YXBNTW9vdFdXb0VOSVMyUlAK"
     }

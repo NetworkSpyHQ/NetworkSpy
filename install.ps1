@@ -4,7 +4,7 @@ param (
     [switch]$Clean          # Added to remove old versions
 )
 
-$REPO = "muizidn/NetworkSpy"
+$REPO = "NetworkSpyHQ/NetworkSpy"
 
 Write-Host "--- Network Spy Installation for Windows ---" -ForegroundColor Cyan
 Write-Host "[*] Script Source: github.com/$REPO" -ForegroundColor Gray
@@ -71,7 +71,7 @@ if ([string]::IsNullOrWhiteSpace($Version) -or $Version -eq "latest") {
 if ([string]::IsNullOrWhiteSpace($Version)) {
     Write-Host "[WARN] networkspy.app returned no version. Falling back to GitHub API..." -ForegroundColor Yellow
     try {
-        $GITHUB_RELEASE = Invoke-RestMethod -Uri "https://api.github.com/repos/muizidn/NetworkSpy/releases/latest" -Method Get -ErrorAction Stop
+        $GITHUB_RELEASE = Invoke-RestMethod -Uri "https://api.github.com/repos/NetworkSpyHQ/NetworkSpy/releases/latest" -Method Get -ErrorAction Stop
         $Version = $GITHUB_RELEASE.tag_name
     } catch {
         Write-Host "[ERROR] Could not determine version to install." -ForegroundColor Red

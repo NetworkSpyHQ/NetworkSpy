@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Network Spy - Terminal Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install.sh | sh
-# Or to install specific version: curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install.sh | sh -s v1.0.0
-# Or to bypass quarantine (macOS/CI): curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install.sh | sh -s -- --allow-unsigned
+# Usage: curl -fsSL https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/main/install.sh | sh
+# Or to install specific version: curl -fsSL https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/main/install.sh | sh -s v1.0.0
+# Or to bypass quarantine (macOS/CI): curl -fsSL https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/main/install.sh | sh -s -- --allow-unsigned
 
 set -e
 
-GITHUB_REPO="muizidn/NetworkSpy"
+GITHUB_REPO="NetworkSpyHQ/NetworkSpy"
 SCRIPT_BRANCH="main"
 
 REPO_URL="https://github.com/$GITHUB_REPO"

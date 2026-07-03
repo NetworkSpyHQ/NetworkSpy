@@ -16,16 +16,16 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: APACHE" src="https://img.shields.io/badge/license-Apache-blue.svg"></a>
-  <a href="https://github.com/muizidn/NetworkSpy/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/muizidn/NetworkSpy/release.yml?branch=main&label=CI&logo=github"></a>
+  <a href="https://github.com/NetworkSpyHQ/NetworkSpy/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/NetworkSpyHQ/NetworkSpy/release.yml?branch=main&label=CI&logo=github"></a>
   <img alt="Status: Beta" src="https://img.shields.io/badge/status-beta-blue.svg">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.75%2B-orange?logo=rust&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/typescript-5.x-blue?logo=typescript&logoColor=white">
   <img alt="Tauri" src="https://img.shields.io/badge/tauri-2.x-24C8D8?logo=tauri&logoColor=white">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-brightgreen.svg">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-6f42c1?logo=desktop&logoColor=white">
-  <a href="https://github.com/muizidn/NetworkSpy/discussions"><img alt="Discussions" src="https://img.shields.io/github/discussions/muizidn/NetworkSpy?logo=github&label=discussions"></a>
-  <a href="https://github.com/muizidn/NetworkSpy/issues"><img alt="Issues" src="https://img.shields.io/github/issues/muizidn/NetworkSpy?logo=github"></a>
-  <a href="https://github.com/muizidn/NetworkSpy/pulls"><img alt="PRs" src="https://img.shields.io/github/issues-pr/muizidn/NetworkSpy?logo=github&label=PRs"></a>
+  <a href="https://github.com/NetworkSpyHQ/NetworkSpy/discussions"><img alt="Discussions" src="https://img.shields.io/github/discussions/NetworkSpyHQ/NetworkSpy?logo=github&label=discussions"></a>
+  <a href="https://github.com/NetworkSpyHQ/NetworkSpy/issues"><img alt="Issues" src="https://img.shields.io/github/issues/NetworkSpyHQ/NetworkSpy?logo=github"></a>
+  <a href="https://github.com/NetworkSpyHQ/NetworkSpy/pulls"><img alt="PRs" src="https://img.shields.io/github/issues-pr/NetworkSpyHQ/NetworkSpy?logo=github&label=PRs"></a>
 </p>
 
 <p align="center">
@@ -104,7 +104,7 @@ The fastest way to install or update Network Spy is via the terminal (Stable Rel
 
 ###  macOS / 🐧 Linux
 ```bash
-curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/main/install.sh | sh
 ```
 
 > [!NOTE]
@@ -112,7 +112,7 @@ curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/main/install.sh 
 
 ### 🪟 Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/muizidn/NetworkSpy/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/main/install.ps1 | iex
 ```
 
 ### 🧪 Bleeding Edge (Develop Builds)
@@ -120,12 +120,12 @@ If you want the latest features from the `develop` branch before they are offici
 
 #### macOS / Linux
 ```bash
-curl -fsSL https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install-dev.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/develop/install-dev.sh | sh
 ```
 
 #### Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install-dev.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/NetworkSpyHQ/NetworkSpy/develop/install-dev.ps1 | iex
 ```
 
 ---
@@ -142,7 +142,7 @@ iwr -useb https://raw.githubusercontent.com/muizidn/NetworkSpy/develop/install-d
 
 ## 🛠️ Development Setup
 
-1. **Clone**: `git clone https://github.com/muizidn/NetworkSpy.git`
+1. **Clone**: `git clone https://github.com/NetworkSpyHQ/NetworkSpy.git`
 2. **Install**: `bun install`
 3. **Run Dev**: `bun run tauri dev`
 4. **Build**: `bun run tauri build`
