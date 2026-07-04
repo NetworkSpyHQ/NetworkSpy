@@ -40,9 +40,11 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
 
   const handleRefresh = () => {
     setRefreshing(true);
+    const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
     Promise.all([
       invoke<DeviceInfo[]>('detect_devices'),
       invoke<string[]>('get_adb_proxy_serials').then(onSerialsChange),
+      minDelay,
     ]).finally(() => setRefreshing(false));
   };
 
@@ -75,7 +77,7 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
         <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5">
           <div className="flex items-center gap-2">
             <FiLink size={14} className={followRun ? "text-blue-400" : "text-zinc-600"} />
-            <span className="text-xs font-bold text-zinc-300">Follow Run</span>
+            <span className="text-xs font-bold text-zinc-300">Sync with Capture</span>
           </div>
           <button
             onClick={() => onFollowRunChange(!followRun)}
@@ -133,7 +135,7 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
                       ) : null
                     ) : device.status === 'device' ? (
                       <button
-                        onClick={() => handleToggleProxy(device.serial, isActive)}
+                        onClick={(e) => { e.stopPropagation(); handleToggleProxy(device.serial, isActive); }}
                         className={twMerge(
                           "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
                           isActive
@@ -141,7 +143,7 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
                             : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
                         )}
                       >
-                        {isActive ? "Stop" : "Start"}
+                        {isActive ? "Stop" : "Proxy"}
                       </button>
                     ) : (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
