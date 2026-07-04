@@ -5,7 +5,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 import { commandPaletteOpenAtom } from '@src/utils/trafficAtoms';
 import { useAppProvider } from '../app-env';
+import { useSettingsContext } from '@src/context/SettingsProvider';
 import { FiSearch, FiCommand, FiTarget, FiMapPin, FiRefreshCw, FiGrid, FiCode, FiTag, FiGitBranch, FiTerminal, FiSliders, FiSave, FiSettings, FiChrome } from 'react-icons/fi';
+import { BsPinAngleFill } from 'react-icons/bs';
 
 interface BrowserInfo {
   name: string;
@@ -29,8 +31,10 @@ export const CommandPalette: React.FC = () => {
   const [browsers, setBrowsers] = useState<BrowserInfo[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { openNewWindow } = useAppProvider();
+  const { pinnedCommandPaletteItems, setPinnedCommandPaletteItems } = useSettingsContext();
 
   const launchBrowser = useCallback((name: string, path: string) => {
     invoke('launch_browser', { name, path }).catch((e) => console.error('Failed to launch:', e));
@@ -210,16 +214,29 @@ export const CommandPalette: React.FC = () => {
     },
   ];
 
-  const filtered = query.trim()
-    ? commands.filter(c => {
-        const q = query.toLowerCase();
-        return c.label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q) || c.keywords.some(k => k.includes(q));
-      })
-    : commands;
+  const filtered = (() => {
+    let items = query.trim()
+      ? commands.filter(c => {
+          const q = query.toLowerCase();
+          return c.label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q) || c.keywords.some(k => k.includes(q));
+        })
+      : commands;
+    items.sort((a, b) => {
+      const aPinned = pinnedCommandPaletteItems.includes(a.id) ? 1 : 0;
+      const bPinned = pinnedCommandPaletteItems.includes(b.id) ? 1 : 0;
+      return bPinned - aPinned;
+    });
+    return items;
+  })();
 
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
+
+  useEffect(() => {
+    const el = listRef.current?.children[selectedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -251,6 +268,8 @@ export const CommandPalette: React.FC = () => {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search commands..."
+            autoComplete="off"
+            spellCheck={false}
             className="flex-1 bg-transparent text-zinc-100 text-sm placeholder-zinc-500 focus:outline-none"
           />
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500 bg-zinc-900 rounded border border-zinc-800">
@@ -258,33 +277,26 @@ export const CommandPalette: React.FC = () => {
           </kbd>
         </div>
 
-        <div className="max-h-[350px] overflow-y-auto py-2">
+        <div ref={listRef} className="max-h-[350px] overflow-y-auto py-2">
           {filtered.length === 0 && (
             <div className="px-5 py-8 text-center text-zinc-500 text-sm">
               No commands found for "<span className="text-zinc-400">{query}</span>"
             </div>
           )}
           {filtered.map((cmd, i) => (
-            <button
+            <CommandItem
               key={cmd.id}
-              onClick={() => cmd.action()}
-              onMouseEnter={() => setSelectedIndex(i)}
-              className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors ${
-                i === selectedIndex
-                  ? 'bg-blue-600/15 text-blue-400'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <span className={`shrink-0 ${i === selectedIndex ? 'text-blue-400' : 'text-zinc-500'}`}>
-                {cmd.icon}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className={`text-sm font-medium truncate ${i === selectedIndex ? 'text-blue-300' : 'text-zinc-100'}`}>
-                  {cmd.label}
-                </div>
-                <div className="text-[11px] text-zinc-500 truncate">{cmd.description}</div>
-              </div>
-            </button>
+              cmd={cmd}
+              selected={i === selectedIndex}
+              pinned={pinnedCommandPaletteItems.includes(cmd.id)}
+              onPin={() => setPinnedCommandPaletteItems(
+                pinnedCommandPaletteItems.includes(cmd.id)
+                  ? pinnedCommandPaletteItems.filter(id => id !== cmd.id)
+                  : [...pinnedCommandPaletteItems, cmd.id]
+              )}
+              onSelect={() => cmd.action()}
+              onHover={() => setSelectedIndex(i)}
+            />
           ))}
         </div>
 
@@ -307,3 +319,39 @@ export const CommandPalette: React.FC = () => {
     document.body
   );
 };
+
+const CommandItem = ({ cmd, selected, pinned, onPin, onSelect, onHover }: {
+  cmd: CommandItem;
+  selected: boolean;
+  pinned: boolean;
+  onPin: () => void;
+  onSelect: () => void;
+  onHover: () => void;
+}) => (
+  <button
+    onClick={onSelect}
+    onMouseEnter={onHover}
+    className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors group ${
+      selected
+        ? 'bg-blue-600/15 text-blue-400'
+        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+    }`}
+  >
+    <span className={`shrink-0 ${selected ? 'text-blue-400' : 'text-zinc-500'}`}>
+      {cmd.icon}
+    </span>
+    <div className="flex-1 min-w-0">
+      <div className={`text-sm font-medium truncate ${selected ? 'text-blue-300' : 'text-zinc-100'}`}>
+        {cmd.label}
+      </div>
+      <div className="text-[11px] text-zinc-500 truncate">{cmd.description}</div>
+    </div>
+    <button
+      onClick={(e) => { e.stopPropagation(); onPin(); }}
+      className={`shrink-0 p-1 rounded transition-colors ${pinned ? 'text-blue-400' : 'text-zinc-700 opacity-0 group-hover:opacity-100 hover:opacity-100'}`}
+      title={pinned ? 'Unpin' : 'Pin to top'}
+    >
+      <BsPinAngleFill size={12} className={pinned ? 'rotate-45' : ''} />
+    </button>
+  </button>
+);

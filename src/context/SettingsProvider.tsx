@@ -45,6 +45,8 @@ interface SettingsContextInterface {
   setAutosave: (enabled: boolean) => void;
   pinnedBottomPaneModes: string[];
   setPinnedBottomPaneModes: (modes: string[]) => void;
+  pinnedCommandPaletteItems: string[];
+  setPinnedCommandPaletteItems: (items: string[]) => void;
   paneLeftVisible: boolean;
   setPaneLeftVisible: (visible: boolean) => void;
   paneBottomVisible: boolean;
@@ -93,6 +95,8 @@ export const SettingsContext = createContext<SettingsContextInterface>({
   setAutosave: () => { },
   pinnedBottomPaneModes: [],
   setPinnedBottomPaneModes: () => { },
+  pinnedCommandPaletteItems: [],
+  setPinnedCommandPaletteItems: () => { },
   paneLeftVisible: true,
   setPaneLeftVisible: () => { },
   paneBottomVisible: true,
@@ -139,6 +143,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   });
   const [autosave, setAutosave] = useState(true);
   const [pinnedBottomPaneModes, setPinnedBottomPaneModes] = useState<string[]>([]);
+  const [pinnedCommandPaletteItems, setPinnedCommandPaletteItems] = useState<string[]>([]);
   const [paneLeftVisible, setPaneLeftVisible] = useState(true);
   const [paneBottomVisible, setPaneBottomVisible] = useState(true);
   const [paneRightVisible, setPaneRightVisible] = useState(false);
@@ -212,6 +217,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       license_key: string;
       autosave: boolean;
       pinned_bottom_pane_modes: string[];
+      pinned_command_palette_items: string[];
       pane_left_visible: boolean;
       pane_bottom_visible: boolean;
       pane_right_visible: boolean;
@@ -240,6 +246,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             }
           } else {
             setPinnedBottomPaneModes(modes);
+          }
+          const palettePins = settings.pinned_command_palette_items || [];
+          if (palettePins.length > 0) {
+            setPinnedCommandPaletteItems(palettePins);
           }
 
           // Migrate pane state from localStorage
@@ -339,6 +349,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         mcp_http_port: mcpHttpPort,
         autosave: autosave,
         pinned_bottom_pane_modes: pinnedBottomPaneModes,
+        pinned_command_palette_items: pinnedCommandPaletteItems,
         pane_left_visible: paneLeftVisible,
         pane_bottom_visible: paneBottomVisible,
         pane_right_visible: paneRightVisible,
@@ -346,7 +357,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         main_window_sizes: mainWindowSizes
       }
     }).catch(console.error);
-  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, autosave, pinnedBottomPaneModes, paneLeftVisible, paneBottomVisible, paneRightVisible, paneCenterLayout, mainWindowSizes, isLoaded]);
+  }, [streamCertificateLogs, mcpStdioEnabled, mcpHttpEnabled, mcpHttpPort, autosave, pinnedBottomPaneModes, pinnedCommandPaletteItems, paneLeftVisible, paneBottomVisible, paneRightVisible, paneCenterLayout, mainWindowSizes, isLoaded]);
 
   return (
     <SettingsContext.Provider
@@ -385,6 +396,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setAutosave,
         pinnedBottomPaneModes,
         setPinnedBottomPaneModes,
+        pinnedCommandPaletteItems,
+        setPinnedCommandPaletteItems,
         paneLeftVisible,
         setPaneLeftVisible,
         paneBottomVisible,

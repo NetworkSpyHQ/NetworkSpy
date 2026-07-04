@@ -19,6 +19,8 @@ pub struct ProxySettings {
     pub autosave: bool,
     #[serde(default)]
     pub pinned_bottom_pane_modes: Vec<String>,
+    #[serde(default)]
+    pub pinned_command_palette_items: Vec<String>,
     #[serde(default = "default_true")]
     pub pane_left_visible: bool,
     #[serde(default = "default_true")]
@@ -47,6 +49,7 @@ impl Default for ProxySettings {
             device_id: "".to_string(),
             autosave: true,
             pinned_bottom_pane_modes: vec![],
+            pinned_command_palette_items: vec![],
             pane_left_visible: true,
             pane_bottom_visible: true,
             pane_right_visible: false,
