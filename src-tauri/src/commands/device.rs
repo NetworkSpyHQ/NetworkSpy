@@ -13,7 +13,13 @@ static ADB_PATH: OnceLock<String> = OnceLock::new();
 static ADB_LOG_ENABLED: OnceLock<bool> = OnceLock::new();
 
 fn adb_log_enabled() -> bool {
-    *ADB_LOG_ENABLED.get_or_init(|| std::env::var("ADB_LOG").is_ok())
+    *ADB_LOG_ENABLED.get_or_init(|| {
+        let enabled = std::env::var("ADB_LOG").is_ok();
+        if !enabled {
+            println!("\x1b[32m[INFO]\x1b[0m ADB logging is disabled. Enable with ADB_LOG=1");
+        }
+        enabled
+    })
 }
 
 macro_rules! adb_log {
