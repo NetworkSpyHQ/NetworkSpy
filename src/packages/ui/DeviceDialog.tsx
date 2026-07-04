@@ -116,12 +116,11 @@ export const DeviceDialog: React.FC<DeviceDialogProps> = ({
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {followRun ? (
-                      <span className={twMerge(
-                        "text-[10px] font-bold uppercase tracking-wider",
-                        isRun ? "text-emerald-500" : "text-zinc-500"
-                      )}>
-                        {isRun ? "Active" : "Inactive"}
-                      </span>
+                      isRun ? (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider">
+                          Proxied
+                        </span>
+                      ) : null
                     ) : device.status === 'device' ? (
                       <button
                         onClick={() => handleToggleProxy(device.serial, isActive)}
