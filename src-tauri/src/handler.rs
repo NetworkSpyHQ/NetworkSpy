@@ -117,6 +117,7 @@ macro_rules! generate_handler {
             crate::commands::adb_push_cert,
             crate::commands::adb_check_cert,
             crate::commands::adb_open_cert_install,
+            crate::commands::check_latest_version,
         ]
     };
 }

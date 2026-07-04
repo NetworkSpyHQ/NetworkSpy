@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
-import { FiX, FiPlay, FiPause, FiTrash2, FiSave, FiMonitor, FiLayout, FiSidebar, FiColumns, FiPlus, FiCommand, FiSmartphone } from 'react-icons/fi';
+import { FiX, FiPlay, FiPause, FiTrash2, FiSave, FiMonitor, FiLayout, FiSidebar, FiColumns, FiPlus, FiCommand, FiSmartphone, FiArrowUp } from 'react-icons/fi';
 import { useAppProvider } from '../app-env';
 import { useSessionContext } from '@src/context/SessionContext';
 import { usePaneContext } from '@src/context/PaneProvider';
@@ -16,7 +16,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { TitleBarCustomMenuTool } from './TitleBarCustomMenuTool';
 import { TitleBarPlatformControls } from './TitleBarPlatformControls';
 import { DeviceDialog } from './DeviceDialog';
+import { UpdateDialog } from './UpdateDialog';
 import { useLicense } from '@src/hooks/useLicense';
+import { getVersion } from '@tauri-apps/api/app';
 
 interface DeviceInfo {
   serial: string;
@@ -176,6 +178,23 @@ const TitleBarTraffic: React.FC = () => {
 
   const { plan, isVerified } = useSettingsContext();
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
+
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [currentAppVersion, setCurrentAppVersion] = useState('');
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+
+  useEffect(() => {
+    getVersion().then(setCurrentAppVersion);
+    invoke<string>('check_latest_version')
+      .then(v => setLatestVersion(v))
+      .catch(() => {});
+  }, []);
+
+  const updateAvailable = (() => {
+    if (!latestVersion || !currentAppVersion) return false;
+    const clean = (v: string) => v.replace(/^v/, '');
+    return clean(latestVersion) > clean(currentAppVersion);
+  })();
 
   const handleSelectWorkspace = async () => {
     if (!isVerified) {
@@ -375,13 +394,24 @@ const TitleBarTraffic: React.FC = () => {
           />
         </div>
 
-          <ActionButton
-            icon={FiSmartphone}
-            active={connectedDevices.length > 0}
-            variant={connectedDevices.length > 0 ? 'success' : 'default'}
-            label={connectedDevices.length > 0 ? `${connectedDevices.length} device(s) connected` : "No device detected"}
-            onClick={() => setIsDeviceDialogOpen(true)}
-          />
+          <div className="relative">
+            <ActionButton
+              icon={FiSmartphone}
+              active={connectedDevices.length > 0}
+              variant={connectedDevices.length > 0 ? 'success' : 'default'}
+              label={connectedDevices.length > 0 ? `${connectedDevices.length} device(s) connected` : "No device detected"}
+              onClick={() => setIsDeviceDialogOpen(true)}
+            />
+          </div>
+          {updateAvailable && (
+            <button
+              onClick={() => setIsUpdateDialogOpen(true)}
+              className="flex items-center gap-1 px-2 h-6 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-wider hover:bg-amber-500/20 transition-all shrink-0"
+            >
+              <FiArrowUp size={11} />
+              Update Available
+            </button>
+          )}
         <TitleBarPlatformControls />
       </div>
 
@@ -418,6 +448,12 @@ const TitleBarTraffic: React.FC = () => {
         isRun={isRun}
         onFollowRunChange={setFollowRun}
         onSerialsChange={setAdbProxySerials}
+      />
+      <UpdateDialog
+        isOpen={isUpdateDialogOpen}
+        onClose={() => setIsUpdateDialogOpen(false)}
+        currentVersion={currentAppVersion}
+        latestVersion={latestVersion || ''}
       />
     </div>
   );
