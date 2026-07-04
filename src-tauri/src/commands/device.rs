@@ -10,12 +10,25 @@ use std::path::PathBuf;
 static MONITOR_STARTED: OnceLock<bool> = OnceLock::new();
 static ADB_REVERSE_ACTIVE: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 static ADB_PATH: OnceLock<String> = OnceLock::new();
+static ADB_LOG_ENABLED: OnceLock<bool> = OnceLock::new();
+
+fn adb_log_enabled() -> bool {
+    *ADB_LOG_ENABLED.get_or_init(|| std::env::var("ADB_LOG").is_ok())
+}
+
+macro_rules! adb_log {
+    ($($arg:tt)*) => {
+        if crate::commands::device::adb_log_enabled() {
+            println!($($arg)*);
+        }
+    };
+}
 
 fn find_adb() -> &'static str {
     ADB_PATH.get_or_init(|| {
         // Try plain "adb" first (PATH lookup — works in debug, may fail in production)
         if which_adb("adb").is_some() {
-            println!("[adb] found via PATH: adb");
+            adb_log!("[adb] found via PATH: adb");
             return "adb".to_string();
         }
 
@@ -24,7 +37,7 @@ fn find_adb() -> &'static str {
             let path = PathBuf::from(&home).join("platform-tools").join("adb");
             if path.exists() {
                 let s = path.to_string_lossy().to_string();
-                println!("[adb] found via ANDROID_HOME: {s}");
+                adb_log!("[adb] found via ANDROID_HOME: {s}");
                 return s;
             }
         }
@@ -34,7 +47,7 @@ fn find_adb() -> &'static str {
             let path = PathBuf::from(&root).join("platform-tools").join("adb");
             if path.exists() {
                 let s = path.to_string_lossy().to_string();
-                println!("[adb] found via ANDROID_SDK_ROOT: {s}");
+                adb_log!("[adb] found via ANDROID_SDK_ROOT: {s}");
                 return s;
             }
         }
@@ -46,7 +59,7 @@ fn find_adb() -> &'static str {
         ] {
             let expanded = shellexpand::tilde(candidate).to_string();
             if std::path::Path::new(&expanded).exists() {
-                println!("[adb] found at: {expanded}");
+                adb_log!("[adb] found at: {expanded}");
                 return expanded;
             }
         }
@@ -57,13 +70,13 @@ fn find_adb() -> &'static str {
         ] {
             let expanded = shellexpand::tilde(candidate).to_string();
             if std::path::Path::new(&expanded).exists() {
-                println!("[adb] found at: {expanded}");
+                adb_log!("[adb] found at: {expanded}");
                 return expanded;
             }
         }
 
         // Fallback — let the OS try PATH anyway (will likely fail with a clear error)
-        println!("[adb] not found in any known location, falling back to PATH lookup");
+        adb_log!("[adb] not found in any known location, falling back to PATH lookup");
         "adb".to_string()
     })
 }
@@ -126,7 +139,7 @@ fn start_device_monitor(app: tauri::AppHandle) {
 
 fn run_adb_devices() -> Vec<DeviceInfo> {
     let adb = find_adb();
-    println!("[adb] running: {adb} devices -l");
+    adb_log!("[adb] running: {adb} devices -l");
 
     let output = std::process::Command::new(adb)
         .args(["devices", "-l"])
@@ -141,7 +154,7 @@ fn run_adb_devices() -> Vec<DeviceInfo> {
             }
             let stdout = String::from_utf8_lossy(&out.stdout);
             let devices = parse_adb_devices(&stdout);
-            println!("[adb] found {} device(s)", devices.len());
+            adb_log!("[adb] found {} device(s)", devices.len());
             devices
         }
         Err(e) => {
@@ -205,7 +218,7 @@ fn parse_adb_devices(output: &str) -> Vec<DeviceInfo> {
 fn run_adb(serial: &str, args: &[&str]) -> Result<(), String> {
     let adb = find_adb();
     let cmd_str = format!("{adb} -s {serial} {}", args.join(" "));
-    println!("[adb] running: {cmd_str}");
+    adb_log!("[adb] running: {cmd_str}");
 
     let mut cmd = std::process::Command::new(adb);
     cmd.arg("-s").arg(serial);
@@ -298,7 +311,7 @@ pub fn adb_check_cert(serial: String) -> bool {
     match output {
         Ok(out) => {
             let exists = out.status.success();
-            println!("[adb] cert check for {serial}: {}", if exists { "found" } else { "not found" });
+            adb_log!("[adb] cert check for {serial}: {}", if exists { "found" } else { "not found" });
             exists
         }
         Err(e) => {
