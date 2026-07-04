@@ -275,6 +275,11 @@ pub fn adb_device_start_proxy(serial: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn adb_device_stop_proxy(serial: String) -> Result<(), String> {
+    let mut state = adb_reverse_state().lock().unwrap();
+    if !state.contains(&serial) {
+        return Ok(());
+    }
+
     let port = ACTUAL_PORT.load(Ordering::SeqCst);
 
     let _ = run_adb(&serial, &["shell", "settings", "put", "global", "http_proxy", ":0"]);
@@ -282,7 +287,7 @@ pub fn adb_device_stop_proxy(serial: String) -> Result<(), String> {
 
     notify_device(&serial, "NetworkSpy", "Proxy disconnected");
 
-    adb_reverse_state().lock().unwrap().remove(&serial);
+    state.remove(&serial);
     Ok(())
 }
 
