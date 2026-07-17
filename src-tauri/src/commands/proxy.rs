@@ -4,6 +4,8 @@ use crate::commands::PROXY_TOGGLE;
 use tauri::Emitter;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+#[cfg(target_os = "macos")]
+use crate::proxy_helper::ProxyHelper;
 
 #[tauri::command]
 pub async fn get_proxy_settings(state: tauri::State<'_, ManagedProxySettings>) -> Result<ProxySettings, String> {
@@ -51,4 +53,25 @@ pub fn change_proxy_port(port: u16) -> u16 {
     }
 
     actual_port
+}
+
+#[tauri::command]
+pub fn is_helper_installed() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        let helper = ProxyHelper::new();
+        helper.get_status().is_ok()
+    }
+    #[cfg(not(target_os = "macos"))]
+    false
+}
+
+#[tauri::command]
+pub fn install_proxy_helper() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        crate::proxy_helper::install_helper()
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("not supported on this platform".into())
 }

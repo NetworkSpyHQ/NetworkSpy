@@ -13,6 +13,7 @@ dependencies = [
  "boa_engine",
  "brotli",
  "bytes",
+ "cc",
  "chrono",
  "cron",
  "crossbeam-channel",

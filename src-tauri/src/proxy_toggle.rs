@@ -4,6 +4,17 @@ use std::process::Command;
 use std::io::Write;
 #[cfg(target_os = "macos")]
 use std::time::Duration;
+#[cfg(target_os = "macos")]
+use std::sync::OnceLock;
+
+#[cfg(target_os = "macos")]
+use crate::proxy_helper::ProxyHelper;
+
+#[cfg(target_os = "macos")]
+fn helper() -> &'static ProxyHelper {
+    static HELPER: OnceLock<ProxyHelper> = OnceLock::new();
+    HELPER.get_or_init(|| ProxyHelper::new())
+}
 
 #[derive(Debug)]
 pub struct ProxyToggle {
@@ -47,6 +58,15 @@ impl ProxyToggle {
 
     #[cfg(target_os = "macos")]
     fn turn_on_macos(&self, port: u64) {
+        match helper().enable_proxy("127.0.0.1", port as u16) {
+            Ok(()) => {
+                notify_network_change_macos();
+                return;
+            }
+            Err(e) => {
+                eprintln!("Proxy helper unavailable ({}), falling back to networksetup", e);
+            }
+        }
         let services = self.get_macos_services();
         let port_s = port.to_string();
         for service in &services {
@@ -60,6 +80,15 @@ impl ProxyToggle {
 
     #[cfg(target_os = "macos")]
     fn turn_off_macos(&self) {
+        match helper().disable_proxy() {
+            Ok(()) => {
+                notify_network_change_macos();
+                return;
+            }
+            Err(e) => {
+                eprintln!("Proxy helper unavailable ({}), falling back to networksetup", e);
+            }
+        }
         let services = self.get_macos_services();
         for service in services {
             self.shell("/usr/sbin/networksetup", &["-setwebproxystate", &service, "off"]);

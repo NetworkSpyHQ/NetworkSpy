@@ -6,6 +6,7 @@ pub mod proxy_handlers_functions;
 mod certificate_installer;
 pub mod eval;
 pub mod proxy_toggle;
+pub mod proxy_helper;
 pub mod commands;
 pub mod proxy_handler;
 pub mod breakpoints;

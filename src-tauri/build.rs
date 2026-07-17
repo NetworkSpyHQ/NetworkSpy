@@ -57,5 +57,16 @@ fn main() {
       panic!("FATAL ERROR: The following mandatory environment variables are missing from your .env file: {:?}", missing_fields);
   }
 
+  #[cfg(target_os = "macos")]
+  {
+    println!("cargo:rerun-if-changed=XPCService/xpc_client.c");
+    println!("cargo:rerun-if-changed=XPCService/xpc_client.h");
+
+    cc::Build::new()
+        .file("XPCService/xpc_client.c")
+        .include("XPCService")
+        .compile("xpc_client");
+  }
+
   tauri_build::build()
 }
