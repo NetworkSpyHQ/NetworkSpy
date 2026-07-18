@@ -2,7 +2,7 @@ import { activeTabIdAtom, WorkspaceTab, workspaceTabsAtom } from "@src/utils/tra
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 
-import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
+import SplitPane, { Pane } from "@src/packages/ui/SplitPane";
 
 import { useUpgradeDialog } from "@src/context/UpgradeContext";
 import { useLicense } from "@src/hooks/useLicense";
@@ -249,7 +249,6 @@ const Content = () => {
       <div className='flex flex-grow overflow-hidden w-full h-full'>
         <SplitPane
           split='vertical'
-          sashRender={() => <SashContent type='vscode' />}
           sizes={sizes}
           onChange={(newSizes: number[]) => setSizes(newSizes.map(s => s + "%"))}>
           <Pane>

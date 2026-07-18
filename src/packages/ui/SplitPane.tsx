@@ -5,10 +5,9 @@ import React, {
   useRef,
   useState,
   PropsWithChildren,
-  ReactNode,
   CSSProperties,
-  MouseEvent as ReactMouseEvent,
 } from "react";
+import "./splitpane.css";
 
 // ── Utility ──────────────────────────────────────────────────────────────
 
@@ -55,23 +54,14 @@ export interface ISplitProps extends HTMLElementProps {
   allowResize?: boolean;
   split?: "vertical" | "horizontal";
   sizes: (string | number)[];
-  sashRender: (index: number, active: boolean) => ReactNode;
   onChange: (sizes: number[]) => void;
   onDragStart?: (e: MouseEvent) => void;
   onDragEnd?: (e: MouseEvent) => void;
-  sashClassName?: string;
   performanceMode?: boolean;
   resizerSize?: number;
 }
 
-export interface ISashContentProps {
-  className?: string;
-  type?: string;
-  active?: boolean;
-  children?: JSX.Element[];
-}
-
-// ── BEM class names (matches split-pane-react) ───────────────────────────
+// ── BEM class names ─────────────────────────────────────────────────────
 
 const SPLIT = "react-split";
 const SPLIT_DRAGGING = `${SPLIT}--dragging`;
@@ -84,29 +74,11 @@ const SASH_DISABLED = `${SASH}--disabled`;
 const PANE = `${SPLIT}__pane`;
 const BODY_DISABLE_SELECT = `${SPLIT}--disabled`;
 
-// ── SashContent ──────────────────────────────────────────────────────────
+// ── Grid areas ───────────────────────────────────────────────────────────
 
-export function SashContent({
-  className,
-  children,
-  active,
-  type,
-  ...others
-}: ISashContentProps) {
-  return (
-    <div
-      className={classNames(
-        "split-sash-content",
-        active ? "split-sash-content-active" : undefined,
-        type ? `split-sash-content-${type}` : undefined,
-        className
-      )}
-      {...others}
-    >
-      {children}
-    </div>
-  );
-}
+const areaL = { gridArea: "left" };
+const areaR = { gridArea: "right" };
+const areaD = { gridArea: "drag" };
 
 // ── Pane ─────────────────────────────────────────────────────────────────
 
@@ -124,71 +96,6 @@ export function Pane({
   );
 }
 
-// ── Sash (resize handle) ────────────────────────────────────────────────
-
-interface SashProps {
-  className?: string;
-  style: CSSProperties;
-  render: (active: boolean) => ReactNode;
-  onDragStart: (e: MouseEvent) => void;
-  onDragging: (e: MouseEvent) => void;
-  onDragEnd: (e: MouseEvent) => void;
-}
-
-function Sash({ className, style, render, onDragStart, onDragging, onDragEnd }: SashProps) {
-  const [active, setActive] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      onDragging(e);
-    },
-    [onDragging]
-  );
-
-  const handleMouseUp = useCallback(
-    (e: MouseEvent) => {
-      setDragging(false);
-      onDragEnd(e);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    },
-    [onDragEnd, handleMouseMove]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-    };
-  }, []);
-
-  return (
-    <div
-      role="Resizer"
-      className={classNames(SASH, className)}
-      style={style}
-      onMouseEnter={() => {
-        hoverTimeout.current = setTimeout(() => setActive(true), 150);
-      }}
-      onMouseLeave={() => {
-        if (hoverTimeout.current) {
-          setActive(false);
-          clearTimeout(hoverTimeout.current);
-        }
-      }}
-      onMouseDown={(e: ReactMouseEvent) => {
-        setDragging(true);
-        onDragStart(e as unknown as MouseEvent);
-        window.addEventListener("mousemove", handleMouseMove);
-        window.addEventListener("mouseup", handleMouseUp);
-      }}
-    >
-      {render(dragging || active)}
-    </div>
-  );
-}
-
 // ── SplitPane ────────────────────────────────────────────────────────────
 
 export default function SplitPane({
@@ -197,7 +104,6 @@ export default function SplitPane({
   allowResize = true,
   split = "vertical",
   className: wrapClassName,
-  sashRender = (_, active) => <SashContent active={active} type="vscode" />,
   resizerSize = 4,
   performanceMode = false,
   onChange = () => null,
@@ -205,34 +111,31 @@ export default function SplitPane({
   onDragEnd = () => null,
   ...others
 }: ISplitProps) {
-  const axis = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const wrapper = useRef<HTMLDivElement>(null);
-  const cacheSizes = useRef<{
-    sizes: number[];
-    sashPosSizes: number[];
-  }>({ sizes: [], sashPosSizes: [] });
-  const [wrapperRect, setWrapperRect] = useState<DOMRect | {}>({});
-  const [isDragging, setDragging] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [wrapSize, setWrapSize] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    originSizes: number[];
+  } | null>(null);
+  const [dragSizes, setDragSizes] = useState<number[] | null>(null);
 
+  // Track container size
   useEffect(() => {
-    if (!wrapper.current) return;
+    if (!wrapperRef.current) return;
     const observer = new ResizeObserver(() => {
-      setWrapperRect(wrapper.current?.getBoundingClientRect() ?? {});
+      const el = wrapperRef.current;
+      if (!el) return;
+      const s = split === "vertical" ? el.clientWidth : el.clientHeight;
+      setWrapSize(s);
     });
-    observer.observe(wrapper.current);
+    observer.observe(wrapperRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [split]);
 
-  const { sizeName, splitPos, splitAxis } = useMemo(
-    () => ({
-      sizeName: split === "vertical" ? "width" : "height" as "width" | "height",
-      splitPos: split === "vertical" ? "left" : "top" as "left" | "top",
-      splitAxis: split === "vertical" ? "x" : "y" as "x" | "y",
-    }),
-    [split]
-  );
-
-  const wrapSize: number = (wrapperRect as Record<string, number>)[sizeName] ?? 0;
+  const isVertical = split === "vertical";
+  const splitAxis = isVertical ? "x" : "y";
 
   // Get min/max limits from Pane children
   const paneLimitSizes = useMemo(
@@ -260,13 +163,11 @@ export default function SplitPane({
       return s;
     });
 
-    // If total exceeds container or all are defined but underflow
     if (definedSum > wrapSize || (!autoCount && definedSum < wrapSize)) {
       const ratio = definedSum > 0 ? (wrapSize - definedSum) / definedSum : 0;
       return resolved.map((s) => (s === Infinity ? 0 : s + s * ratio));
     }
 
-    // Distribute remaining space among auto panes
     if (autoCount > 0) {
       const each = (wrapSize - definedSum) / autoCount;
       return resolved.map((s) => (s === Infinity ? each : s));
@@ -276,103 +177,134 @@ export default function SplitPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...propSizes, children.length, wrapSize]);
 
-  // Cumulative positions for sash placement
-  const sashPosSizes = useMemo(
-    () => sizes.reduce((acc, s) => [...acc, acc[acc.length - 1] + s], [0]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [...sizes]
-  );
+  // The sizes used for rendering (drag override or props)
+  const activeSizes = dragSizes ?? sizes;
 
-  // Local drag tracking — updates instantly without waiting for parent re-render
-  const dragOriginRef = useRef<number[] | null>(null);
-  const dragCurrentRef = useRef<number[] | null>(null);
-  const [, forceUpdate] = useState(0);
+  // Convert pixel sizes to fr units for CSS Grid
+  const totalPx = activeSizes.reduce((a, b) => a + b, 0);
+  const frSizes =
+    totalPx > 0
+      ? activeSizes.map((s) => s / totalPx)
+      : activeSizes.map(() => 1);
 
-  const dragStart = useCallback(
+  // Build grid template
+  const gridTemplate = useMemo(() => {
+    if (isVertical) {
+      return `
+        '${areaL.gridArea} ${areaD.gridArea} ${areaR.gridArea}'
+        / ${frSizes[0]}fr 0 ${frSizes[1]}fr
+      `;
+    } else {
+      return `
+        '${areaL.gridArea}'
+        ${frSizes[0]}fr
+        '${areaD.gridArea}'
+        0
+        '${areaR.gridArea}'
+        ${frSizes[1]}fr
+        / 1fr
+      `;
+    }
+  }, [isVertical, frSizes]);
+
+  // ── Drag handling (native mouse events on window) ───────────────────
+
+  const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      document.body.classList.add(BODY_DISABLE_SELECT);
-      axis.current = { x: e.pageX, y: e.pageY };
-      dragOriginRef.current = [...sizes];
-      dragCurrentRef.current = [...sizes];
-      setDragging(true);
-      onDragStart(e);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onDragStart, sizes]
-  );
+      if (!dragRef.current) return;
 
-  const dragEnd = useCallback(
-    (e: MouseEvent) => {
-      document.body.classList.remove(BODY_DISABLE_SELECT);
-      dragOriginRef.current = null;
-      dragCurrentRef.current = null;
-      setDragging(false);
-      onDragEnd(e);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onDragEnd]
-  );
-
-  const onDragging = useCallback(
-    (e: MouseEvent, i: number) => {
       const curPos = splitAxis === "x" ? e.pageX : e.pageY;
-      const startPos = splitAxis === "x" ? axis.current.x : axis.current.y;
+      const startPos =
+        splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
       let distance = curPos - startPos;
 
-      // Always compute from the ORIGINAL sizes at drag start
-      const origin = dragOriginRef.current ?? sizes;
+      const origin = dragRef.current.originSizes;
 
       const leftBorder = -Math.min(
-        origin[i] - paneLimitSizes[i][0],
-        paneLimitSizes[i + 1][1] - origin[i + 1]
+        origin[0] - paneLimitSizes[0][0],
+        paneLimitSizes[1][1] - origin[1]
       );
       const rightBorder = Math.min(
-        origin[i + 1] - paneLimitSizes[i + 1][0],
-        paneLimitSizes[i][1] - origin[i]
+        origin[1] - paneLimitSizes[1][0],
+        paneLimitSizes[0][1] - origin[0]
       );
 
       distance = clamp(distance, leftBorder, rightBorder);
 
-      const next = [...origin];
-      next[i] += distance;
-      next[i + 1] -= distance;
-
-      // Update local refs for instant visual feedback
-      dragCurrentRef.current = next;
-      forceUpdate((n) => n + 1);
-
-      onChange(next);
+      setDragSizes([origin[0] + distance, origin[1] - distance]);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paneLimitSizes, onChange, sizes, splitAxis]
+    [paneLimitSizes, splitAxis]
   );
 
-  // During drag, use local ref for instant visual feedback
-  const activeSizes = dragCurrentRef.current ?? sizes;
-  const activeSashPos = activeSizes.reduce(
-    (acc: number[], s: number) => [...acc, acc[acc.length - 1] + s],
-    [0]
+  const handleMouseUp = useCallback(
+    (e: MouseEvent) => {
+      if (!dragRef.current) return;
+
+      document.body.classList.remove(BODY_DISABLE_SELECT);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+
+      // Compute final sizes and report to parent
+      const curPos = splitAxis === "x" ? e.pageX : e.pageY;
+      const startPos =
+        splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
+      let distance = curPos - startPos;
+
+      const origin = dragRef.current.originSizes;
+      const leftBorder = -Math.min(
+        origin[0] - paneLimitSizes[0][0],
+        paneLimitSizes[1][1] - origin[1]
+      );
+      const rightBorder = Math.min(
+        origin[1] - paneLimitSizes[1][0],
+        paneLimitSizes[0][1] - origin[0]
+      );
+      distance = clamp(distance, leftBorder, rightBorder);
+
+      const final = [origin[0] + distance, origin[1] - distance];
+      dragRef.current = null;
+      setDragSizes(null);
+      setIsDragging(false);
+      onDragEnd(e);
+      onChange(final);
+    },
+    [handleMouseMove, paneLimitSizes, onDragEnd, onChange, splitAxis]
   );
 
-  const paneFollow = !(performanceMode && isDragging);
-  const paneSizes = paneFollow ? activeSizes : cacheSizes.current.sizes;
-  const panePoses = paneFollow ? activeSashPos : cacheSizes.current.sashPosSizes;
+  const handleSashMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      document.body.classList.add(BODY_DISABLE_SELECT);
+      dragRef.current = {
+        startX: e.pageX,
+        startY: e.pageY,
+        originSizes: [...sizes],
+      };
+      setIsDragging(true);
+      onDragStart(e as unknown as MouseEvent);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    },
+    [sizes, onDragStart, handleMouseMove, handleMouseUp]
+  );
 
   return (
     <div
       className={classNames(
         SPLIT,
-        split === "vertical" && SPLIT_VERTICAL,
-        split === "horizontal" && SPLIT_HORIZONTAL,
+        isVertical ? SPLIT_VERTICAL : SPLIT_HORIZONTAL,
         isDragging && SPLIT_DRAGGING,
         wrapClassName
       )}
-      ref={wrapper}
+      style={{ gridTemplate }}
+      ref={wrapperRef}
       {...others}
     >
       {children.map((childNode, childIndex) => {
         const isPane = childNode.type === Pane;
-        const paneProps = isPane ? (childNode.props as IPaneConfigs & HTMLElementProps) : {};
+        const paneProps = isPane
+          ? (childNode.props as IPaneConfigs & HTMLElementProps)
+          : {};
 
         return (
           <Pane
@@ -380,34 +312,53 @@ export default function SplitPane({
             className={classNames(PANE, paneProps.className)}
             style={{
               ...paneProps.style,
-              [sizeName]: paneSizes[childIndex],
-              [splitPos]: panePoses[childIndex],
-              position: "absolute",
+              gridArea: childIndex === 0 ? "left" : "right",
+              minHeight: 0,
+              minWidth: 0,
               overflow: "hidden",
             }}
           >
-            {isPane ? (childNode.props as { children?: ReactNode }).children ?? childNode : childNode}
+            {isPane
+              ? ((childNode.props as { children?: React.ReactNode })
+                  .children ?? childNode)
+              : childNode}
           </Pane>
         );
       })}
-      {activeSashPos.slice(1, -1).map((posSize, index) => (
-        <Sash
-          key={index}
+      {children.length > 1 && (
+        <div
+          onMouseDown={handleSashMouseDown}
           className={classNames(
+            SASH,
             !allowResize && SASH_DISABLED,
-            split === "vertical" ? SASH_VERTICAL : SASH_HORIZONTAL
+            isVertical ? SASH_VERTICAL : SASH_HORIZONTAL
           )}
           style={{
-            [sizeName]: resizerSize,
-            [splitPos]: posSize - resizerSize / 2,
-            position: "absolute",
+            gridArea: "drag",
+            zIndex: 10,
+            ...(isVertical
+              ? {
+                  width: 10,
+                  marginLeft: -5,
+                  alignSelf: "stretch",
+                }
+              : {
+                  height: 10,
+                  marginTop: -5,
+                  justifySelf: "stretch",
+                }),
           }}
-          render={sashRender.bind(null, index)}
-          onDragStart={dragStart}
-          onDragging={(e) => onDragging(e, index)}
-          onDragEnd={dragEnd}
-        />
-      ))}
+        >
+          {isDragging && (
+            <div
+              className={classNames(
+                "fixed left-[-100vw] right-[-100vw] top-[-100vh] bottom-[-100vh] z-[9999]",
+                isVertical ? "cursor-col-resize" : "cursor-row-resize"
+              )}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

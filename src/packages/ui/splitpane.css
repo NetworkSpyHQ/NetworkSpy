@@ -1,0 +1,75 @@
+/* ── SplitPane ─────────────────────────────────────────────────────── */
+
+.react-split {
+  display: grid;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.react-split__pane {
+  height: 100%;
+  overflow: hidden;
+}
+
+.react-split__sash {
+  z-index: 10;
+  background-color: transparent;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.react-split__sash--disabled {
+  pointer-events: none;
+}
+
+.react-split__sash--vertical {
+  cursor: col-resize;
+}
+
+.react-split__sash--horizontal {
+  cursor: row-resize;
+}
+
+.react-split--dragging.react-split--vertical {
+  cursor: col-resize;
+}
+
+.react-split--dragging.react-split--horizontal {
+  cursor: row-resize;
+}
+
+body.react-split--disabled {
+  user-select: none;
+}
+
+/* Sash hover highlight */
+.react-split__sash::after {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  transition: all 0.15s ease-in-out;
+  z-index: 100;
+}
+
+.react-split__sash--vertical::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+}
+
+.react-split__sash--horizontal::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 4px;
+}
+
+.react-split__sash:hover::after {
+  background-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}

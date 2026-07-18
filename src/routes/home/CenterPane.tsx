@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
+import SplitPane, { Pane } from "@src/packages/ui/SplitPane";
 
 import { BottomPaneProvider } from "@src/context/BottomPaneContext";
 import { FilterProvider } from "@src/context/FilterContext";
@@ -102,7 +102,6 @@ export const CenterPane: React.FC<{ tabId: string }> = ({ tabId }) => {
           <SplitPane
             className="h-full"
             split={splitDirection}
-            sashRender={() => <SashContent type="vscode" />}
             sizes={sizesCenterPane}
             onChange={setSizesCenterPane}
           >

@@ -1,4 +1,4 @@
-import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
+import SplitPane, { Pane } from "@src/packages/ui/SplitPane";
 import { useAppProvider } from "@src/packages/app-env";
 import { useIsMobile } from "../../../../hooks/useMobile";
 import { useState, useEffect } from "react";
@@ -154,7 +154,6 @@ export const RawMode = () => {
         ) : (
           <SplitPane
             split={isMobile ? "horizontal" : "vertical"}
-            sashRender={() => <SashContent type="vscode" />}
             sizes={sizes}
             onChange={setSizes}
           >
