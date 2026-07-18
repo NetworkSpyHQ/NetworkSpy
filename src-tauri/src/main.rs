@@ -156,7 +156,8 @@ fn main() {
 
             // Create main window with initialization_script so settings are
             // available before the page's JS executes — no flash.
-            let window = tauri::WebviewWindowBuilder::new(
+            #[allow(unused_mut)]
+            let mut builder = tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
@@ -165,12 +166,24 @@ fn main() {
             .inner_size(1200.0, 800.0)
             .resizable(true)
             .decorations(true)
-            .transparent(true)
             .theme(Some(tauri::Theme::Dark))
-            .title_bar_style(tauri::TitleBarStyle::Transparent)
-            .initialization_script(&init_script)
-            .build()
-            .expect("Failed to create main window");
+            .initialization_script(&init_script);
+
+            #[cfg(target_os = "macos")]
+            {
+                builder = builder
+                    .transparent(true)
+                    .title_bar_style(tauri::TitleBarStyle::Transparent);
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                builder = builder.transparent(true);
+            }
+
+            let window = builder
+                .build()
+                .expect("Failed to create main window");
 
             #[cfg(target_os = "macos")]
             {
