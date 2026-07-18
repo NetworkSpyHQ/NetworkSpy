@@ -1,4 +1,4 @@
-import SplitPane, { Pane, SashContent } from "split-pane-react";
+import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
 import { useAppProvider } from "@src/packages/app-env";
 import { RequestTab } from "../../RequestTab";
 import { ResponseTab } from "../../ResponseTab";

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import SplitPane, { Pane, SashContent } from "split-pane-react";
+import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
 
 import { BottomPaneProvider } from "@src/context/BottomPaneContext";
 import { FilterProvider } from "@src/context/FilterContext";

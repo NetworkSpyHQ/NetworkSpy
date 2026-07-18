@@ -1,4 +1,4 @@
-import SplitPane, { Pane, SashContent } from "split-pane-react";
+import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
 import { useAppProvider } from "@src/packages/app-env";
 import { useIsMobile } from "../../../../hooks/useMobile";
 import { useState, useEffect } from "react";

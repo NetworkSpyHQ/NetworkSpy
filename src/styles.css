@@ -36,15 +36,59 @@ html, body, #root {
   }
 }
 
-/* Custom SplitPane Sash Hover Highlight */
-.react-split__sash {
-  z-index: 50 !important;
-  background-color: transparent !important;
-  transition: all 0.2s ease-in-out !important;
+/* ── SplitPane ─────────────────────────────────────────────────────── */
+.react-split {
+  flex: 1;
+  height: 100%;
   position: relative;
+  width: 100%;
+}
+.react-split__pane {
+  height: 100%;
+  position: absolute;
+  white-space: normal;
+  width: 100%;
+  overflow: hidden;
+}
+.react-split__sash {
+  height: 100%;
+  position: absolute;
+  top: 0;
+  z-index: 50;
+  background-color: transparent;
+  transition: all 0.2s ease-in-out;
+}
+.react-split__sash--disabled {
+  pointer-events: none;
+}
+.react-split__sash--vertical {
+  cursor: col-resize;
+}
+.react-split__sash--horizontal {
+  cursor: row-resize;
+}
+.react-split__sash-content {
+  width: 100%;
+  height: 100%;
+}
+.react-split--dragging.react-split--vertical {
+  cursor: col-resize;
+}
+.react-split--dragging.react-split--horizontal {
+  cursor: row-resize;
+}
+body.react-split--disabled {
+  user-select: none;
+}
+.split-sash-content {
+  width: 100%;
+  height: 100%;
+}
+.split-sash-content.split-sash-content-vscode.split-sash-content-active {
+  background-color: #175ede;
 }
 
-/* Create the highlight line */
+/* Sash highlight line (pseudo-element) */
 .react-split__sash::after {
   content: '';
   position: absolute;
@@ -52,8 +96,6 @@ html, body, #root {
   transition: all 0.2s ease-in-out;
   z-index: 100;
 }
-
-/* Vertical Sash Styling */
 .react-split__sash--vertical::after {
   top: 0;
   bottom: 0;
@@ -62,8 +104,6 @@ html, body, #root {
   transform: translateX(-50%) scaleY(0.98);
   border-radius: 4px;
 }
-
-/* Horizontal Sash Styling */
 .react-split__sash--horizontal::after {
   left: 0;
   right: 0;
@@ -72,10 +112,8 @@ html, body, #root {
   transform: translateY(-50%) scaleX(0.98);
   border-radius: 4px;
 }
-
-/* Active/Hover states */
 .react-split__sash:hover::after,
 .react-split__sash:active::after {
-  background-color: #3b82f6 !important; /* blue-500 */
+  background-color: #3b82f6;
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.8), 0 0 4px rgba(59, 130, 246, 0.4);
 }

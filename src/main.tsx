@@ -8,7 +8,7 @@ import Settings from "./routes/settings";
 import { TauriProvider } from "./context/TauriProvider";
 import "./styles.css";
 import "./styles/treeview.css";
-import "split-pane-react/esm/themes/default.css";
+
 import { SettingsProvider } from "./context/SettingsProvider";
 // import ScriptList from "./routes/script-list";
 import CertificateInstaller from "./routes/certificate-installer";

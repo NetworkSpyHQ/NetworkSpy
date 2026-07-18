@@ -2,7 +2,7 @@ import { activeTabIdAtom, WorkspaceTab, workspaceTabsAtom } from "@src/utils/tra
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 
-import SplitPane, { Pane, SashContent } from "split-pane-react";
+import SplitPane, { Pane, SashContent } from "@src/packages/ui/SplitPane";
 
 import { useUpgradeDialog } from "@src/context/UpgradeContext";
 import { useLicense } from "@src/hooks/useLicense";
