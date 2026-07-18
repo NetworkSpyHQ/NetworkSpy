@@ -103,8 +103,8 @@ const HeaderCell = <T,>({
             onResizeMouseDown(e, index);
           }}
           className={twMerge(
-            "absolute right-0 top-0 bottom-0 w-[3px] cursor-col-resize z-40 translate-x-1/2",
-            isResizing ? "bg-blue-400" : "bg-zinc-700 hover:bg-blue-500/60"
+            "absolute right-0 top-0 bottom-0 w-px cursor-col-resize z-40 translate-x-1/2",
+            isResizing ? "bg-blue-400" : "bg-zinc-800 hover:bg-blue-500/60"
           )}
         />
       )}
