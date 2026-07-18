@@ -8,6 +8,21 @@ import React, {
 import { invoke } from "@tauri-apps/api/core";
 import { AppPlan } from "@src/models/Plan";
 
+// Settings injected by Rust via window.eval() before React mounts
+interface InitialSettings {
+  main_window_sizes?: string[];
+  pane_right_visible?: boolean;
+  pane_left_visible?: boolean;
+  pane_bottom_visible?: boolean;
+  pane_center_layout?: string;
+}
+declare global {
+  interface Window {
+    __INITIAL_SETTINGS__?: InitialSettings;
+  }
+}
+const INITIAL = typeof window !== "undefined" ? window.__INITIAL_SETTINGS__ : undefined;
+
 
 
 interface SettingsContextInterface {
@@ -144,11 +159,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [autosave, setAutosave] = useState(true);
   const [pinnedBottomPaneModes, setPinnedBottomPaneModes] = useState<string[]>([]);
   const [pinnedCommandPaletteItems, setPinnedCommandPaletteItems] = useState<string[]>([]);
-  const [paneLeftVisible, setPaneLeftVisible] = useState(true);
-  const [paneBottomVisible, setPaneBottomVisible] = useState(true);
-  const [paneRightVisible, setPaneRightVisible] = useState(false);
-  const [paneCenterLayout, setPaneCenterLayout] = useState<'horizontal' | 'vertical'>('vertical');
-  const [mainWindowSizes, setMainWindowSizes] = useState<string[]>(["70%", "0%"]);
+  const [paneLeftVisible, setPaneLeftVisible] = useState(() => INITIAL?.pane_left_visible ?? true);
+  const [paneBottomVisible, setPaneBottomVisible] = useState(() => INITIAL?.pane_bottom_visible ?? true);
+  const [paneRightVisible, setPaneRightVisible] = useState(() => INITIAL?.pane_right_visible ?? false);
+  const [paneCenterLayout, setPaneCenterLayout] = useState<'horizontal' | 'vertical'>(() => (INITIAL?.pane_center_layout as 'horizontal' | 'vertical') ?? 'vertical');
+  const [mainWindowSizes, setMainWindowSizes] = useState<string[]>(() => INITIAL?.main_window_sizes ?? ["70%", "0%"]);
   const [bottomPaneTabPosition, setBottomPaneTabPosition] = useState<'top' | 'bottom'>(() => {
     return (localStorage.getItem("ns_bottom_pane_tab_position") as 'top' | 'bottom') || "top";
   });

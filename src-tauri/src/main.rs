@@ -221,6 +221,21 @@ fn main() {
             let proxy_settings = Arc::new(std::sync::RwLock::new(proxy_settings_data));
             app_handle.manage(ManagedProxySettings(Arc::clone(&proxy_settings)));
 
+            // Inject settings into webview so React can read them before the
+            // async invoke("get_proxy_settings") call returns. This eliminates
+            // the flash caused by default values being replaced by saved values.
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(settings) = proxy_settings.read() {
+                    if let Ok(json) = serde_json::to_string(&*settings) {
+                        let script = format!(
+                            "window.__INITIAL_SETTINGS__ = {};",
+                            json
+                        );
+                        let _ = window.eval(&script);
+                    }
+                }
+            }
+
             // Start MCP Server for LLM/Claude Code integration
             mcp::spawn_mcp_server(app_handle.clone());
 
