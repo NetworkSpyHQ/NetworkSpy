@@ -136,6 +136,8 @@ export default function SplitPane({
 
   const isVertical = split === "vertical";
   const splitAxis = isVertical ? "x" : "y";
+  const splitAxisRef = useRef(splitAxis);
+  splitAxisRef.current = splitAxis;
 
   // Get min/max limits from Pane children
   const paneLimitSizes = useMemo(
@@ -234,9 +236,10 @@ export default function SplitPane({
   function onMove(e: MouseEvent) {
     if (!dragRef.current) return;
 
-    const curPos = splitAxis === "x" ? e.pageX : e.pageY;
+    const axis = splitAxisRef.current;
+    const curPos = axis === "x" ? e.pageX : e.pageY;
     const startPos =
-      splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
+      axis === "x" ? dragRef.current.startX : dragRef.current.startY;
     let distance = curPos - startPos;
 
     const origin = dragRef.current.originSizes;
@@ -262,9 +265,10 @@ export default function SplitPane({
     document.body.classList.remove(BODY_DISABLE_SELECT);
     removeListeners();
 
-    const curPos = splitAxis === "x" ? e.pageX : e.pageY;
+    const axis = splitAxisRef.current;
+    const curPos = axis === "x" ? e.pageX : e.pageY;
     const startPos =
-      splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
+      axis === "x" ? dragRef.current.startX : dragRef.current.startY;
     let distance = curPos - startPos;
 
     const origin = dragRef.current.originSizes;
