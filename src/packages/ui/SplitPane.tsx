@@ -208,68 +208,85 @@ export default function SplitPane({
   }, [isVertical, frSizes]);
 
   // ── Drag handling (native mouse events on window) ───────────────────
+  // Use refs for callbacks so event listeners always call the latest version
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!dragRef.current) return;
+  const paneLimitSizesRef = useRef(paneLimitSizes);
+  paneLimitSizesRef.current = paneLimitSizes;
 
-      const curPos = splitAxis === "x" ? e.pageX : e.pageY;
-      const startPos =
-        splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
-      let distance = curPos - startPos;
+  const onDragStartRef = useRef(onDragStart);
+  onDragStartRef.current = onDragStart;
 
-      const origin = dragRef.current.originSizes;
+  const onDragEndRef = useRef(onDragEnd);
+  onDragEndRef.current = onDragEnd;
 
-      const leftBorder = -Math.min(
-        origin[0] - paneLimitSizes[0][0],
-        paneLimitSizes[1][1] - origin[1]
-      );
-      const rightBorder = Math.min(
-        origin[1] - paneLimitSizes[1][0],
-        paneLimitSizes[0][1] - origin[0]
-      );
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-      distance = clamp(distance, leftBorder, rightBorder);
+  const sizesRef = useRef(sizes);
+  sizesRef.current = sizes;
 
-      setDragSizes([origin[0] + distance, origin[1] - distance]);
-    },
-    [paneLimitSizes, splitAxis]
-  );
+  const removeListeners = useCallback(() => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleMouseUp = useCallback(
-    (e: MouseEvent) => {
-      if (!dragRef.current) return;
+  function onMove(e: MouseEvent) {
+    if (!dragRef.current) return;
 
-      document.body.classList.remove(BODY_DISABLE_SELECT);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+    const curPos = splitAxis === "x" ? e.pageX : e.pageY;
+    const startPos =
+      splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
+    let distance = curPos - startPos;
 
-      // Compute final sizes and report to parent
-      const curPos = splitAxis === "x" ? e.pageX : e.pageY;
-      const startPos =
-        splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
-      let distance = curPos - startPos;
+    const origin = dragRef.current.originSizes;
+    const limits = paneLimitSizesRef.current;
 
-      const origin = dragRef.current.originSizes;
-      const leftBorder = -Math.min(
-        origin[0] - paneLimitSizes[0][0],
-        paneLimitSizes[1][1] - origin[1]
-      );
-      const rightBorder = Math.min(
-        origin[1] - paneLimitSizes[1][0],
-        paneLimitSizes[0][1] - origin[0]
-      );
-      distance = clamp(distance, leftBorder, rightBorder);
+    const leftBorder = -Math.min(
+      origin[0] - limits[0][0],
+      limits[1][1] - origin[1]
+    );
+    const rightBorder = Math.min(
+      origin[1] - limits[1][0],
+      limits[0][1] - origin[0]
+    );
 
-      const final = [origin[0] + distance, origin[1] - distance];
-      dragRef.current = null;
-      setDragSizes(null);
-      setIsDragging(false);
-      onDragEnd(e);
-      onChange(final);
-    },
-    [handleMouseMove, paneLimitSizes, onDragEnd, onChange, splitAxis]
-  );
+    distance = clamp(distance, leftBorder, rightBorder);
+
+    setDragSizes([origin[0] + distance, origin[1] - distance]);
+  }
+
+  function onUp(e: MouseEvent) {
+    if (!dragRef.current) return;
+
+    document.body.classList.remove(BODY_DISABLE_SELECT);
+    removeListeners();
+
+    const curPos = splitAxis === "x" ? e.pageX : e.pageY;
+    const startPos =
+      splitAxis === "x" ? dragRef.current.startX : dragRef.current.startY;
+    let distance = curPos - startPos;
+
+    const origin = dragRef.current.originSizes;
+    const limits = paneLimitSizesRef.current;
+
+    const leftBorder = -Math.min(
+      origin[0] - limits[0][0],
+      limits[1][1] - origin[1]
+    );
+    const rightBorder = Math.min(
+      origin[1] - limits[1][0],
+      limits[0][1] - origin[0]
+    );
+    distance = clamp(distance, leftBorder, rightBorder);
+
+    const finalSizes = [origin[0] + distance, origin[1] - distance];
+    dragRef.current = null;
+    setDragSizes(null);
+    setIsDragging(false);
+    onDragEndRef.current(e);
+    onChangeRef.current(finalSizes);
+  }
 
   const handleSashMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -278,14 +295,15 @@ export default function SplitPane({
       dragRef.current = {
         startX: e.pageX,
         startY: e.pageY,
-        originSizes: [...sizes],
+        originSizes: [...sizesRef.current],
       };
       setIsDragging(true);
-      onDragStart(e as unknown as MouseEvent);
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      onDragStartRef.current(e as unknown as MouseEvent);
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
     },
-    [sizes, onDragStart, handleMouseMove, handleMouseUp]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   return (
