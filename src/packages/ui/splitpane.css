@@ -54,7 +54,7 @@ body.react-split--disabled {
 .react-split__sash--vertical::after {
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 3px;
   transform: translateX(-50%);
   border-radius: 4px;
 }
@@ -62,7 +62,7 @@ body.react-split--disabled {
 .react-split__sash--horizontal::after {
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   transform: translateY(-50%);
   border-radius: 4px;
 }

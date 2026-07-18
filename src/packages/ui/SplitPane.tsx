@@ -182,23 +182,12 @@ export default function SplitPane({
   // The sizes used for rendering (drag override or props)
   const activeSizes = dragSizes ?? sizes;
 
-  // Convert to fr units for CSS Grid
-  // During drag, use pixel-based ratios; otherwise derive directly from
-  // percentage strings to avoid a 50/50 flash before ResizeObserver fires.
-  const frSizes = useMemo(() => {
-    if (dragSizes) {
-      const total = activeSizes.reduce((a, b) => a + b, 0);
-      return total > 0 ? activeSizes.map((s) => s / total) : [1, 1];
-    }
-    const frValues = propSizes.map((s) => {
-      if (typeof s === "string" && s.endsWith("%")) {
-        return Number.parseFloat(s);
-      }
-      return 1;
-    });
-    const total = frValues.reduce((a, b) => a + b, 0);
-    return total > 0 ? frValues.map((v) => v / total) : [1, 1];
-  }, [dragSizes, activeSizes, propSizes]);
+  // Convert pixel sizes to fr units for CSS Grid
+  const totalPx = activeSizes.reduce((a, b) => a + b, 0);
+  const frSizes =
+    totalPx > 0
+      ? activeSizes.map((s) => s / totalPx)
+      : activeSizes.map(() => 1);
 
   // Build grid template
   const gridTemplate = useMemo(() => {
@@ -372,12 +361,10 @@ export default function SplitPane({
             ...(isVertical
               ? {
                   width: 10,
-                  marginLeft: -5,
                   alignSelf: "stretch",
                 }
               : {
                   height: 10,
-                  marginTop: -5,
                   justifySelf: "stretch",
                 }),
           }}
