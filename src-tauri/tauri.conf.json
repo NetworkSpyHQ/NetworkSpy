@@ -12,20 +12,7 @@
     "macOSPrivateApi": true,
     "withGlobalTauri": true,
 
-    "windows": [
-      {
-        "title": "Network Spy",
-        "width": 1200,
-        "height": 800,
-        "resizable": true,
-        "decorations": true,
-        "transparent": true,
-        "theme": "Dark",
-        "titleBarStyle": "Transparent"
-      }
-
-
-    ],
+    "windows": [],
 
     "security": {
       "csp": null

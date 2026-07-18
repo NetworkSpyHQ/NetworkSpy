@@ -129,21 +129,57 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
-            
 
-            // 0. Native Window Customization
-            if let Some(window) = app.get_webview_window("main") {
-                #[cfg(target_os = "macos")]
-                {
-                    // Setup the native title bar positioning and styling (Yaak-style)
-                    mac_window::setup_mac_window(&window);
-                }
+            let app_handle = app.app_handle();
+            let app_data_dir = workspace::get_active_config_dir();
 
-                #[cfg(not(target_os = "macos"))]
-                {
-                    // Hide native title bar on Windows/Linux to use custom one
-                    let _ = window.set_decorations(false);
+            #[cfg(debug_assertions)]
+            println!("Active Config Dir: {}", app_data_dir.display());
+
+            if !app_data_dir.exists() {
+                fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
+            }
+
+            // Load settings from ConfigManager (before window creation)
+            let config_manager = Arc::new(crate::config::ConfigManager::new(app_data_dir.clone()));
+            let proxy_settings_data = config_manager.get_proxy_settings();
+            let proxy_settings = Arc::new(std::sync::RwLock::new(proxy_settings_data));
+
+            // Serialize settings to inject into webview before React mounts
+            let init_script = {
+                let settings = proxy_settings.read().unwrap();
+                match serde_json::to_string(&*settings) {
+                    Ok(json) => format!("window.__INITIAL_SETTINGS__ = {};", json),
+                    Err(_) => "window.__INITIAL_SETTINGS__ = {};".to_string(),
                 }
+            };
+
+            // Create main window with initialization_script so settings are
+            // available before the page's JS executes — no flash.
+            let window = tauri::WebviewWindowBuilder::new(
+                app,
+                "main",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("Network Spy")
+            .inner_size(1200.0, 800.0)
+            .resizable(true)
+            .decorations(true)
+            .transparent(true)
+            .theme(Some(tauri::Theme::Dark))
+            .title_bar_style(tauri::TitleBarStyle::Transparent)
+            .initialization_script(&init_script)
+            .build()
+            .expect("Failed to create main window");
+
+            #[cfg(target_os = "macos")]
+            {
+                mac_window::setup_mac_window(&window);
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = window.set_decorations(false);
             }
 
 
@@ -171,26 +207,17 @@ fn main() {
 
             // Event handling is unified below in the global handler
 
-            let app_handle = app.app_handle();
-            let app_data_dir = workspace::get_active_config_dir();
-            
-            #[cfg(debug_assertions)]
-            println!("Active Config Dir: {}", app_data_dir.display());
-
-            if !app_data_dir.exists() {
-                fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
-            }
+            app_handle.manage(Arc::clone(&config_manager));
 
             let db_path = app_data_dir.join("traffic.db");
-            
+
             #[cfg(debug_assertions)]
             println!("DB Path: {}", db_path.display());
-            
+
             let traffic_db = Arc::new(TrafficDb::new(db_path).expect("Failed to initialize database"));
             app_handle.manage(Arc::clone(&traffic_db));
 
-            let config_manager = Arc::new(crate::config::ConfigManager::new(app_data_dir.clone()));
-            app_handle.manage(Arc::clone(&config_manager));
+            app_handle.manage(ManagedProxySettings(Arc::clone(&proxy_settings)));
 
             let tag_manager = Arc::new(TagManager::new(Arc::clone(&traffic_db)));
             app_handle.manage(Arc::clone(&tag_manager));
@@ -215,26 +242,6 @@ fn main() {
 
             let map_remote_manager = Arc::new(MapRemoteManager::new());
             app_handle.manage(Arc::clone(&map_remote_manager));
-
-            // Load settings from ConfigManager
-            let proxy_settings_data = config_manager.get_proxy_settings();
-            let proxy_settings = Arc::new(std::sync::RwLock::new(proxy_settings_data));
-            app_handle.manage(ManagedProxySettings(Arc::clone(&proxy_settings)));
-
-            // Inject settings into webview so React can read them before the
-            // async invoke("get_proxy_settings") call returns. This eliminates
-            // the flash caused by default values being replaced by saved values.
-            if let Some(window) = app.get_webview_window("main") {
-                if let Ok(settings) = proxy_settings.read() {
-                    if let Ok(json) = serde_json::to_string(&*settings) {
-                        let script = format!(
-                            "window.__INITIAL_SETTINGS__ = {};",
-                            json
-                        );
-                        let _ = window.eval(&script);
-                    }
-                }
-            }
 
             // Start MCP Server for LLM/Claude Code integration
             mcp::spawn_mcp_server(app_handle.clone());

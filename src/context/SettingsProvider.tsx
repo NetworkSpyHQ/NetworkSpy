@@ -8,7 +8,7 @@ import React, {
 import { invoke } from "@tauri-apps/api/core";
 import { AppPlan } from "@src/models/Plan";
 
-// Settings injected by Rust via window.eval() before React mounts
+// Settings injected by Rust via initialization_script before page JS executes
 interface InitialSettings {
   main_window_sizes?: string[];
   pane_right_visible?: boolean;
@@ -21,7 +21,10 @@ declare global {
     __INITIAL_SETTINGS__?: InitialSettings;
   }
 }
-const INITIAL = typeof window !== "undefined" ? window.__INITIAL_SETTINGS__ : undefined;
+
+function getInit(): InitialSettings | undefined {
+  return window.__INITIAL_SETTINGS__;
+}
 
 
 
@@ -159,11 +162,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [autosave, setAutosave] = useState(true);
   const [pinnedBottomPaneModes, setPinnedBottomPaneModes] = useState<string[]>([]);
   const [pinnedCommandPaletteItems, setPinnedCommandPaletteItems] = useState<string[]>([]);
-  const [paneLeftVisible, setPaneLeftVisible] = useState(() => INITIAL?.pane_left_visible ?? true);
-  const [paneBottomVisible, setPaneBottomVisible] = useState(() => INITIAL?.pane_bottom_visible ?? true);
-  const [paneRightVisible, setPaneRightVisible] = useState(() => INITIAL?.pane_right_visible ?? false);
-  const [paneCenterLayout, setPaneCenterLayout] = useState<'horizontal' | 'vertical'>(() => (INITIAL?.pane_center_layout as 'horizontal' | 'vertical') ?? 'vertical');
-  const [mainWindowSizes, setMainWindowSizes] = useState<string[]>(() => INITIAL?.main_window_sizes ?? ["70%", "0%"]);
+  const [paneLeftVisible, setPaneLeftVisible] = useState(() => getInit()?.pane_left_visible ?? true);
+  const [paneBottomVisible, setPaneBottomVisible] = useState(() => getInit()?.pane_bottom_visible ?? true);
+  const [paneRightVisible, setPaneRightVisible] = useState(() => getInit()?.pane_right_visible ?? false);
+  const [paneCenterLayout, setPaneCenterLayout] = useState<'horizontal' | 'vertical'>(() => (getInit()?.pane_center_layout as 'horizontal' | 'vertical') ?? 'vertical');
+  const [mainWindowSizes, setMainWindowSizes] = useState<string[]>(() => getInit()?.main_window_sizes ?? ["70%", "0%"]);
   const [bottomPaneTabPosition, setBottomPaneTabPosition] = useState<'top' | 'bottom'>(() => {
     return (localStorage.getItem("ns_bottom_pane_tab_position") as 'top' | 'bottom') || "top";
   });
