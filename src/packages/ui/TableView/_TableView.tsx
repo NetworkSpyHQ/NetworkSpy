@@ -35,18 +35,20 @@ const HeaderCell = <T,>({
   moveHeader,
   sortConfig,
   handleSort,
-  onResizeClick,
+  onResizeMouseDown,
   columnWidth,
   isLast,
+  isResizing,
 }: {
   header: TableViewHeader<T>;
   index: number;
   moveHeader: (dragIndex: number, hoverIndex: number) => void;
   sortConfig: { key: keyof T | null; order: SortOrder | null };
   handleSort: (index: number) => void;
-  onResizeClick: (index: number) => void;
+  onResizeMouseDown: (e: React.MouseEvent, index: number) => void;
   columnWidth: number;
   isLast: boolean;
+  isResizing: boolean;
 }) => {
   const ref = useRef<HTMLTableHeaderCellElement>(null);
 
@@ -85,9 +87,7 @@ const HeaderCell = <T,>({
         opacity: isDragging ? 0.5 : 1,
       }}
     >
-      <div
-        className="flex items-center justify-between cursor-grab w-full gap-1 overflow-hidden"
-      >
+      <div className="flex items-center justify-between cursor-grab w-full gap-1 overflow-hidden">
         <span className="text-[9px] font-black uppercase tracking-widest truncate">{header.title}</span>
         {isActive && (
           <span className="shrink-0 p-0.5 bg-blue-500/10 rounded text-blue-500">
@@ -96,20 +96,29 @@ const HeaderCell = <T,>({
         )}
       </div>
       {!isLast && (
-        <button
-          onClick={(e) => {
+        <div
+          onMouseDown={(e) => {
             e.stopPropagation();
-            onResizeClick(index);
+            e.preventDefault();
+            onResizeMouseDown(e, index);
           }}
-          className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-blue-600 border border-blue-400 text-white flex items-center justify-center opacity-0 group-hover/header:opacity-100 hover:scale-110 transition-all z-40 transform translate-x-1/2 cursor-pointer shadow-lg shadow-blue-900/40"
-          title="Resize Column"
-        >
-          <span className="text-[10px] font-bold">↔</span>
-        </button>
+          className={twMerge(
+            "absolute right-0 top-0 bottom-0 w-[3px] cursor-col-resize z-40 translate-x-1/2",
+            isResizing ? "bg-blue-400" : "bg-zinc-700 hover:bg-blue-500/60"
+          )}
+        />
       )}
     </div>
   );
 };
+
+const ColumnResizeHighlight = ({ left }: { left: number }) => (
+  <div
+    id="table-header-drag-highlight"
+    className="absolute top-0 bottom-0 w-[3px] bg-blue-400 pointer-events-none z-50 -translate-x-1/2"
+    style={{ left: `${left}px` }}
+  />
+);
 
 export const TableView = <T,>({
   headers: initialHeaders,
@@ -423,26 +432,40 @@ export const TableView = <T,>({
     return (-c / 2) * (t * (t - 2) - 1) + b;
   };
 
-  const [resizingIndex, setResizingIndex] = useState<number | null>(null);
-  const [resizeValue, setResizeValue] = useState<string>("");
+  const [resizingCol, setResizingCol] = useState<number | null>(null);
+  const resizeRef = useRef<{ col: number; startX: number; startWidth: number } | null>(null);
 
-  const openResizeDialog = (index: number) => {
-    setResizingIndex(index);
-    setResizeValue(columnWidths[index].toString());
-  };
+  const handleResizeMouseDown = (e: React.MouseEvent, colIndex: number) => {
+    resizeRef.current = { col: colIndex, startX: e.clientX, startWidth: columnWidths[colIndex] };
+    setResizingCol(colIndex);
 
-  const applyResize = () => {
-    if (resizingIndex !== null) {
-      const newWidth = parseInt(resizeValue);
-      if (!isNaN(newWidth)) {
-        setColumnWidths((prev) => {
-          const next = [...prev];
-          next[resizingIndex] = Math.max(headers[resizingIndex].minWidth || 50, newWidth);
-          return next;
-        });
-      }
-      setResizingIndex(null);
-    }
+    const gridEl = (e.target as HTMLElement).closest("[role='rowgroup']")?.previousElementSibling as HTMLElement | null;
+
+    const onMouseMove = (me: globalThis.MouseEvent) => {
+      if (!resizeRef.current) return;
+      const dx = me.clientX - resizeRef.current.startX;
+      const minW = headers[resizeRef.current.col].minWidth || 50;
+      const newWidth = Math.max(minW, resizeRef.current.startWidth + dx);
+      setColumnWidths((prev) => {
+        const next = [...prev];
+        next[resizeRef.current!.col] = newWidth;
+        return next;
+      });
+    };
+
+    const onMouseUp = () => {
+      resizeRef.current = null;
+      setResizingCol(null);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
   };
 
   const handleSort = (index: number) => {
@@ -477,7 +500,7 @@ export const TableView = <T,>({
     <div className={twMerge("w-full h-full flex flex-col bg-[#050505] overflow-x-auto custom-scrollbar", className)}>
       <div role="grid" className="min-w-fit w-full flex flex-col h-full overflow-hidden">
         <div role="rowgroup" className="sticky top-0 z-30 shrink-0 border-b-2 border-zinc-900/50">
-          <div role="row" className="grid min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
+          <div role="row" className="grid min-w-full relative" style={{ gridTemplateColumns: gridTemplate }}>
             {headers.map((header, index) => (
               <HeaderCell
                 key={`header-${index}`}
@@ -486,11 +509,19 @@ export const TableView = <T,>({
                 moveHeader={moveHeader}
                 sortConfig={sortConfig}
                 handleSort={handleSort}
-                onResizeClick={openResizeDialog}
+                onResizeMouseDown={handleResizeMouseDown}
                 columnWidth={columnWidths[index]}
                 isLast={index === headers.length - 1}
+                isResizing={resizingCol === index}
               />
             ))}
+            {resizingCol !== null && (() => {
+              let left = 0;
+              for (let i = 0; i <= resizingCol; i++) {
+                left += columnWidths[i];
+              }
+              return <ColumnResizeHighlight left={left} />;
+            })()}
           </div>
         </div>
         <div
@@ -614,43 +645,6 @@ export const TableView = <T,>({
               {autoScrollEnabled ? "Disable periodic scroll (Drag to move)" : "Enable 3s periodic scroll (Drag to move)"}
             </div>
           </button>
-        </div>
-      )}
-
-      {/* Resize Dialog */}
-      {resizingIndex !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#18181b] border border-zinc-800 rounded-lg p-4 w-72 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-[12px] font-bold text-zinc-400 mb-3 uppercase tracking-wider">Set Column Width</h3>
-            <div className="flex flex-col gap-1.5 mb-4">
-              <label className="text-[10px] text-zinc-500 font-medium ml-1">Width (pixels)</label>
-              <input
-                autoFocus
-                type="number"
-                className="input input-sm bg-[#111111] border-zinc-800 text-white rounded focus:border-blue-500 focus:outline-none w-full"
-                value={resizeValue}
-                onChange={(e) => setResizeValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") applyResize();
-                  if (e.key === "Escape") setResizingIndex(null);
-                }}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setResizingIndex(null)}
-                className="btn btn-sm btn-ghost text-zinc-500 hover:text-white text-[11px]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyResize}
-                className="btn btn-sm bg-blue-600 border-none text-white hover:bg-blue-500 min-w-[80px] text-[11px]"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
