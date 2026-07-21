@@ -19,6 +19,7 @@ export interface TableViewProps<T> {
   className?: string;
   renderRow?: (item: T, children: React.ReactNode) => React.ReactNode;
   onRowClick?: (item: T) => void;
+  autoScrollToBottom?: boolean;
 }
 
 export type SortOrder = "asc" | "desc";

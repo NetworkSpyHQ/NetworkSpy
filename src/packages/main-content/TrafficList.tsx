@@ -147,6 +147,7 @@ export const TrafficList: React.FC = () => {
       selectedItems={selections.others}
       contextMenuRenderer={contextMenuRenderer}
       onSelectedRowChanged={handleSelectedRowChanged}
+      autoScrollToBottom
     />
   );
 };

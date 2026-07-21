@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { twMerge } from "tailwind-merge";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TableViewHeader, TableViewProps, SortOrder } from "./_types";
@@ -16,8 +16,17 @@ export const TableView = <T,>({
   className,
   renderRow,
   onRowClick,
+  autoScrollToBottom,
 }: TableViewProps<T>) => {
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const autoScrollRef = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    if (!autoScrollToBottom || !tbodyRef.current) return;
+    const el = tbodyRef.current;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    autoScrollRef.current = atBottom;
+  }, [autoScrollToBottom]);
   const [columnWidths, setColumnWidths] = useState<number[]>(
     initialHeaders.map((e) => e.minWidth || 150)
   );
@@ -53,6 +62,11 @@ export const TableView = <T,>({
     estimateSize: () => 30,
     overscan: 20,
   });
+
+  useEffect(() => {
+    if (!autoScrollToBottom || !autoScrollRef.current || sortedData.length === 0) return;
+    rowVirtualizer.scrollToIndex(sortedData.length - 1, { align: 'end' });
+  }, [sortedData.length, autoScrollToBottom]);
 
   const { selectedRows, onClickRow, showContextMenu } = useRowSelection({
     sortedData,
@@ -155,6 +169,7 @@ export const TableView = <T,>({
         <div
           ref={tbodyRef}
           role="rowgroup"
+          onScroll={handleScroll}
           className="overflow-y-auto overflow-x-hidden flex-grow scroll-smooth relative"
         >
           <div
