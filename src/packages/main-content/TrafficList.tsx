@@ -10,7 +10,6 @@ import { useTrafficListContext } from "./context/TrafficList";
 import { useFilterContext } from "@src/context/FilterContext";
 import { TrafficItemMap } from "./model/TrafficItemMap";
 import { invoke } from "@tauri-apps/api/core";
-import { useAppProvider } from "../app-env";
 import { listen, emit } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
@@ -23,8 +22,6 @@ type TauriInvokeFn = <T>(cmd: string, args?: any) => Promise<T>;
 export const TrafficList: React.FC = () => {
   const { selections, setSelections, setTrafficList, setTrafficSet } = useTrafficListContext();
   const { filteredTraffic } = useFilterContext();
-  const { isRun } = useAppProvider();
-
   useEffect(() => {
     const unlistenExport = listen<{ ids: string[] }>("export_selected", async (event) => {
       try {
@@ -150,8 +147,6 @@ export const TrafficList: React.FC = () => {
       selectedItems={selections.others}
       contextMenuRenderer={contextMenuRenderer}
       onSelectedRowChanged={handleSelectedRowChanged}
-      isAllowAutoScroll={true}
-      isAutoScroll={isRun}
     />
   );
 };

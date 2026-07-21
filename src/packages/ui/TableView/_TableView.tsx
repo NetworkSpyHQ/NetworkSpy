@@ -3,7 +3,6 @@ import { twMerge } from "tailwind-merge";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { TableViewHeader, TableViewProps, SortOrder } from "./_types";
 import { HeaderCell, ColumnResizeHighlight } from "./_HeaderCell";
-import { AutoScrollButton } from "./_AutoScrollButton";
 import { useRowSelection } from "./_useRowSelection";
 
 export type { TableViewHeader, TableViewProps, SortOrder };
@@ -15,8 +14,6 @@ export const TableView = <T,>({
   onSelectedRowChanged,
   selectedItems,
   className,
-  isAllowAutoScroll,
-  isAutoScroll,
   renderRow,
   onRowClick,
 }: TableViewProps<T>) => {
@@ -220,11 +217,6 @@ export const TableView = <T,>({
           )}
         </div>
       </div>
-      <AutoScrollButton
-        tbodyRef={tbodyRef}
-        isAllowAutoScroll={isAllowAutoScroll}
-        isAutoScroll={isAutoScroll}
-      />
     </div>
   );
 };

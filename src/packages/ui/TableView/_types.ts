@@ -17,8 +17,6 @@ export interface TableViewProps<T> {
   onSelectedRowChanged?: (firstSelected: T | null, items: T[] | null) => void;
   selectedItems?: T[] | null;
   className?: string;
-  isAllowAutoScroll?: boolean;
-  isAutoScroll?: boolean;
   renderRow?: (item: T, children: React.ReactNode) => React.ReactNode;
   onRowClick?: (item: T) => void;
 }
