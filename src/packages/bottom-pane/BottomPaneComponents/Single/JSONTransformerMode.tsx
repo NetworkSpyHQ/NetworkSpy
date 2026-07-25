@@ -121,7 +121,7 @@ const Placeholder = ({ text }: { text: string }) => (
     <div className="h-full flex items-center justify-center text-zinc-500 bg-[#0a0a0a] font-sans">
         <div className="text-center">
             <div className="text-5xl font-black opacity-5 mb-3 italic tracking-tighter">TRANSFORM</div>
-            <div className="text-[10px] font-bold tracking-widest text-zinc-600 mb-2">Query Engine Standby</div>
+            <div className="text-[10px] font-bold tracking-normal text-zinc-600 mb-2">No request selected</div>
             <div className="text-xs italic">{text}</div>
         </div>
     </div>

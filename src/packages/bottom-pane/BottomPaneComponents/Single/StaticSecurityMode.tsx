@@ -248,8 +248,8 @@ const Placeholder = ({ text }: { text: string }) => (
             <FiCpu size={40} className="opacity-20" />
             <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/10 to-transparent rounded-full animate-pulse"></div>
         </div>
-        <h3 className="text-zinc-400 font-black mb-2 italic tracking-tight">Static Inspector Standby</h3>
-        <p className="text-[10px] text-zinc-600 max-w-[200px] leading-relaxed font-bold tracking-widest">{text}</p>
+        <h3 className="text-zinc-400 font-bold mb-2 tracking-normal">No Request Selected</h3>
+        <p className="text-[10px] text-zinc-600 max-w-[200px] leading-relaxed font-medium tracking-normal">{text}</p>
     </div>
 );
 

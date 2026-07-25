@@ -261,7 +261,7 @@ const EmptyState = () => (
             <FiActivity size={40} className="group-hover:text-blue-400/50 transition-colors duration-1000" />
             <div className="absolute inset-0 bg-blue-500/5 opacity-0 rounded-[2.5rem] group-hover:opacity-100 transition-opacity duration-1000" />
         </div>
-        <h3 className="text-zinc-200 font-black mb-3 italic tracking-tighter text-xl">Sensor Network Standby</h3>
-        <p className="text-xs text-zinc-500 max-w-[250px] font-bold tracking-[0.2em] leading-relaxed opacity-60">Aggregate real-time telemetry from connected agents</p>
+        <h3 className="text-zinc-200 font-bold mb-3 tracking-normal text-xl">Start Capturing</h3>
+        <p className="text-xs text-zinc-500 max-w-[250px] font-bold tracking-[0.2em] leading-relaxed opacity-60">Press the capture button to begin monitoring traffic</p>
     </div>
 );

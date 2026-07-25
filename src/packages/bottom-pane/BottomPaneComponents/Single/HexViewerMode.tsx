@@ -87,7 +87,7 @@ const Placeholder = ({ text }: { text: string }) => (
                 <FiHash size={40} className="relative z-10" />
             </div>
             <div className="text-5xl font-black opacity-5 mb-3 italic tracking-tighter text-emerald-500">BINARY</div>
-            <div className="text-[10px] font-bold tracking-widest text-zinc-600 mb-2">Segment Engine Standby</div>
+            <div className="text-[10px] font-bold tracking-normal text-zinc-600 mb-2">No request selected</div>
             <div className="text-xs italic">{text}</div>
         </div>
     </div>
