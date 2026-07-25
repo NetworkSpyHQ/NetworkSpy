@@ -3,8 +3,6 @@ import { FilterNode, PredefinedFilter, FilterTypes, FilterOperators } from "../m
 import { invoke } from "@tauri-apps/api/core";
 import { useLicense } from "../hooks/useLicense";
 import { useUpgradeDialog } from "./UpgradeContext";
-import { useAtomValue } from "jotai";
-import { isLicensedAtom } from "../utils/trafficAtoms";
 
 interface FilterPresetContextState {
   predefinedFilters: PredefinedFilter[];
@@ -105,9 +103,8 @@ export const FilterPresetProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   });
 
-  const { getLimit } = useLicense();
+  const { getLimit, isLicensed } = useLicense();
   const { openUpgradeDialog } = useUpgradeDialog();
-  const isLicensed = useAtomValue(isLicensedAtom);
 
   // Load from DB on mount
   useEffect(() => {

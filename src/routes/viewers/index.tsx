@@ -6,14 +6,12 @@ import { twMerge } from "tailwind-merge";
 import ViewerList from "@src/routes/viewers/ViewerList";
 import ViewerBuilder from "@src/routes/viewers/ViewerBuilder";
 import { Viewer } from "@src/context/ViewerContext";
-import { useSettingsContext } from "@src/context/SettingsProvider";
+import { useLicense } from "@src/hooks/useLicense";
 import { FiLock, FiZap, FiEye, FiCpu, FiLayers } from "react-icons/fi";
 
 const ViewersPage: React.FC = () => {
     const [selectedViewer, setSelectedViewer] = useAtom(activeViewerBuilderAtom);
-    const { plan, isVerified } = useSettingsContext();
-
-    const isPro = isVerified && plan?.isPro;
+    const { isPro } = useLicense();
 
 
 

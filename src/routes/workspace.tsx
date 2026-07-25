@@ -1,10 +1,8 @@
 import { FiLayout, FiClock, FiStar, FiUsers, FiLock, FiZap, FiCheckCircle } from 'react-icons/fi';
-import { useSettingsContext } from '../context/SettingsProvider';
+import { useLicense } from '../hooks/useLicense';
 
 export default function WorkspacePage() {
-    const { plan, isVerified } = useSettingsContext();
-
-    const isTeam = isVerified && plan?.isTeam;
+    const { isTeam } = useLicense();
 
     if (!isTeam) {
         return (

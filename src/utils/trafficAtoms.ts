@@ -39,6 +39,6 @@ export const titleBarContentAtom = atom<React.ReactNode | null>(null);
 
 export const osAtom = atom<string>('macos');
 
-export const isLicensedAtom = atom<boolean | null>(null);
+export const planAtom = atom<string>('free');
 
 export const commandPaletteOpenAtom = atom(false);

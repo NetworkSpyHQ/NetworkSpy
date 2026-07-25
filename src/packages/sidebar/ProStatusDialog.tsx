@@ -1,8 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { FiStar, FiZap, FiTarget, FiBox } from 'react-icons/fi';
-import { useSettingsContext } from '../../context/SettingsProvider';
-import { AppPlan } from '../../models/Plan';
+import { useLicense } from '../../hooks/useLicense';
 
 interface ProStatusDialogProps {
   isOpen: boolean;
@@ -10,8 +9,7 @@ interface ProStatusDialogProps {
 }
 
 export const ProStatusDialog: React.FC<ProStatusDialogProps> = ({ isOpen, onClose }) => {
-  const { plan, isVerified } = useSettingsContext();
-  const isPro = plan === AppPlan.PRO && isVerified;
+  const { isPro } = useLicense();
 
   if (!isOpen) return null;
 

@@ -6,7 +6,6 @@ import React, {
   ReactNode,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AppPlan } from "@src/models/Plan";
 
 // Settings injected by Rust via initialization_script before page JS executes
 interface InitialSettings {
@@ -43,18 +42,12 @@ interface SettingsContextInterface {
   setMcpHttpPort: (port: number) => void;
   smartViewerMatch: boolean;
   setSmartViewerMatch: (enabled: boolean) => void;
-  plan: AppPlan | null;
-  isVerified: boolean;
-  apiFeatures: any | null;
-  isSyncing: boolean;
   openRouterKey: string;
   setOpenRouterKey: (key: string) => void;
   openRouterModel: string;
   setOpenRouterModel: (model: string) => void;
   aiBaseUrl: string;
   setAiBaseUrl: (url: string) => void;
-  verifyLicense: (key: string | null) => Promise<any>;
-  revokeLicense: () => Promise<void>;
   startProxyOnLaunch: boolean;
   setStartProxyOnLaunch: (enabled: boolean) => void;
   bottomPaneTabPosition: 'top' | 'bottom';
@@ -93,18 +86,12 @@ export const SettingsContext = createContext<SettingsContextInterface>({
   setMcpHttpPort: () => { },
   smartViewerMatch: false,
   setSmartViewerMatch: () => { },
-  plan: null,
-  isVerified: false,
-  apiFeatures: null,
-  isSyncing: false,
   openRouterKey: "",
   setOpenRouterKey: () => { },
   openRouterModel: "google/gemini-2.0-flash-001",
   setOpenRouterModel: () => { },
   aiBaseUrl: "https://openrouter.ai/api/v1",
   setAiBaseUrl: () => { },
-  verifyLicense: async () => { },
-  revokeLicense: async () => { },
   startProxyOnLaunch: true,
   setStartProxyOnLaunch: () => { },
   bottomPaneTabPosition: 'top',
@@ -146,16 +133,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [openRouterKey, setOpenRouterKey] = useState(() => localStorage.getItem("ns_openrouter_key") || "");
   const [openRouterModel, setOpenRouterModel] = useState(() => localStorage.getItem("ns_openrouter_model") || "anthropic/claude-sonnet-4.6");
   const [aiBaseUrl, setAiBaseUrl] = useState(() => localStorage.getItem("ns_ai_base_url") || "https://openrouter.ai/api/v1");
-  const [plan, setPlan] = useState<AppPlan | null>(() => {
-    const saved = localStorage.getItem("ns_license_plan");
-    return saved ? AppPlan.fromString(saved) : null;
-  });
-  const [isVerified, setIsVerified] = useState(() => localStorage.getItem("ns_license_verified") === "true");
-  const [apiFeatures, setApiFeatures] = useState<any | null>(() => {
-    const saved = localStorage.getItem("ns_license_features");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isSyncing, setIsSyncing] = useState(false);
   const [startProxyOnLaunch, setStartProxyOnLaunch] = useState(() => {
     return localStorage.getItem("ns_start_proxy_on_launch") !== "false";
   });
@@ -171,58 +148,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return (localStorage.getItem("ns_bottom_pane_tab_position") as 'top' | 'bottom') || "top";
   });
 
-
-  const verifyLicense = async (key: string | null = null) => {
-    setIsSyncing(true);
-    try {
-      const result: any = await invoke("verify_license", { licenseKey: key });
-      if (result.success) {
-        const mappedPlan = AppPlan.fromString(result.plan);
-        setIsVerified(true);
-        setPlan(mappedPlan);
-        setApiFeatures(result.features || null);
-
-        // Cache result
-        localStorage.setItem("ns_license_verified", "true");
-        localStorage.setItem("ns_license_plan", mappedPlan?.toString() || "");
-        localStorage.setItem("ns_license_features", JSON.stringify(result.features || null));
-      } else {
-        setIsVerified(false);
-        setPlan(null);
-        setApiFeatures(null);
-
-        // Clear cache
-        localStorage.removeItem("ns_license_verified");
-        localStorage.removeItem("ns_license_plan");
-        localStorage.removeItem("ns_license_features");
-      }
-      setIsSyncing(false);
-      return result;
-    } catch (e) {
-      setIsSyncing(false);
-      console.error("License verification failed", e);
-      setIsVerified(false);
-      setPlan(null);
-      setApiFeatures(null);
-      throw e;
-    }
-  };
-
-  const revokeLicense = async () => {
-    try {
-      await invoke("revoke_license_from_keychain");
-      setIsVerified(false);
-      setPlan(null);
-      setApiFeatures(null);
-
-      // Clear cache
-      localStorage.removeItem("ns_license_verified");
-      localStorage.removeItem("ns_license_plan");
-      localStorage.removeItem("ns_license_features");
-    } catch (e) {
-      console.error("Failed to revoke license", e);
-    }
-  };
 
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -314,9 +239,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             setMainWindowSizes(sizes);
           }
 
-          // Try silent verify (uses keychain on backend)
-          verifyLicense(null).catch(() => { });
-
           setIsLoaded(true);
         }
       })
@@ -400,12 +322,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setOpenRouterModel,
         aiBaseUrl,
         setAiBaseUrl,
-        plan,
-        isVerified,
-        apiFeatures,
-        isSyncing,
-        verifyLicense,
-        revokeLicense,
         startProxyOnLaunch,
         setStartProxyOnLaunch,
         bottomPaneTabPosition,

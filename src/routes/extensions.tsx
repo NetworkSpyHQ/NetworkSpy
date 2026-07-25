@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FiGrid, FiSearch, FiDownload, FiInfo, FiCreditCard, FiShoppingCart, FiCpu, FiPlay, FiX, FiCheck, FiChevronRight, FiTrendingUp, FiLock, FiTerminal, FiEye, FiZap } from 'react-icons/fi';
 import { Dialog } from '../packages/ui/Dialog';
 import { createPortal } from 'react-dom';
-import { useSettingsContext } from '../context/SettingsProvider';
+import { useLicense } from '../hooks/useLicense';
 
 interface Extension {
     id: string;
@@ -21,9 +21,7 @@ export default function ExtensionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedExtension, setSelectedExtension] = useState<Extension | null>(null);
   const [isIncomingDialogOpen, setIsIncomingDialogOpen] = useState(false);
-  const { plan, isVerified } = useSettingsContext();
-
-  const isPro = isVerified && plan?.isPro;
+  const { isPro } = useLicense();
 
   if (!isPro) {
     return (

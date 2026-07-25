@@ -10,7 +10,6 @@ import { SaveSessionDialog } from '../header/components/SaveSessionDialog';
 import { twMerge } from 'tailwind-merge';
 import { useAtom } from 'jotai';
 import { workspaceTabsAtom, activeTabIdAtom, WorkspaceTab, osAtom, commandPaletteOpenAtom } from '@src/utils/trafficAtoms';
-import { useSettingsContext } from '@src/context/SettingsProvider';
 import { UpgradeDialog } from '../header/components/UpgradeDialog';
 import { invoke } from '@tauri-apps/api/core';
 import { TitleBarCustomMenuTool } from './TitleBarCustomMenuTool';
@@ -36,7 +35,7 @@ const TitleBarTraffic: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
 
   const { isRun, setIsRun, clearData, provider, currentPort, pausedBreakpoints, openNewWindow } = useAppProvider();
-  const { getLimit } = useLicense();
+  const { getLimit, isVerified, isLicensed } = useLicense();
   const { isReviewMode, reviewedSession, viewSession, saveCapture, folders } = useSessionContext();
   const { isDisplayPane, setIsDisplayPane } = usePaneContext();
 
@@ -176,7 +175,6 @@ const TitleBarTraffic: React.FC = () => {
 
   const connectedDevices = devices.filter(d => d.status === 'device');
 
-  const { plan, isVerified } = useSettingsContext();
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
 
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
@@ -231,7 +229,7 @@ const TitleBarTraffic: React.FC = () => {
         <div className="flex items-center gap-2 h-full animate-in fade-in duration-300">
           {/* Workspace Indicator */}
           <div className="flex items-center gap-1.5 shrink-0 h-full" data-tauri-drag-region>
-            {plan === null && (
+            {!isLicensed && (
               <span className="flex items-center px-2 h-6 rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-tight">
                 Free
               </span>

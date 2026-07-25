@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { FiSettings, FiTarget, FiInfo, FiTerminal, FiCpu, FiPlay, FiCheckCircle, FiXCircle, FiKey, FiShield, FiZap, FiLayers, FiSave } from 'react-icons/fi';
 import { twMerge } from 'tailwind-merge';
 import { useSettingsContext } from '../context/SettingsProvider';
-import { AppPlan } from '../models/Plan';
+import { useLicense } from '../hooks/useLicense';
 import { getVersion } from '@tauri-apps/api/app';
 
 export default function Settings() {
@@ -18,11 +18,6 @@ export default function Settings() {
         setMcpHttpPort,
         smartViewerMatch,
         setSmartViewerMatch,
-        plan,
-        isVerified,
-        verifyLicense,
-        revokeLicense,
-        isSyncing,
         openRouterKey,
         setOpenRouterKey,
         openRouterModel,
@@ -38,6 +33,9 @@ export default function Settings() {
         theme,
         setTheme,
     } = useSettingsContext();
+
+    const { isPro, isTeam, isVerified, isLicensed, verifyLicense, revokeLicense, plan } = useLicense();
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const [appVersion, setAppVersion] = useState<string>('0.0.0');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -71,6 +69,7 @@ export default function Settings() {
         if (!localLicenseKey) return;
         setLicenseStatus('verifying');
         setLicenseMessage('');
+        setIsSyncing(true);
         try {
             const result: any = await verifyLicense(localLicenseKey);
             if (result.success) {
@@ -84,6 +83,7 @@ export default function Settings() {
             setLicenseStatus('error');
             setLicenseMessage(e.toString());
         }
+        setIsSyncing(false);
     };
 
     useEffect(() => {
@@ -308,7 +308,7 @@ export default function Settings() {
                                 <h2 className="text-sm font-black text-white flex items-center gap-2">
                                     <FiZap size={14} className="text-blue-500" />
                                     AI Configuration
-                                    {(!plan?.isPersonal && !plan?.isPro) && (
+                                    {!isLicensed && (
                                         <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest rounded border border-blue-500/30">
                                             Free Plan (Default Model)
                                         </span>
@@ -339,7 +339,7 @@ export default function Settings() {
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between px-1">
                                             <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">AI Model ID</label>
-                                            {!plan?.isPersonal && !plan?.isPro && (
+                                            {!isLicensed && (
                                                 <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Locked</span>
                                             )}
                                         </div>
@@ -351,13 +351,13 @@ export default function Settings() {
                                                 value={openRouterModel}
                                                 onChange={(e) => setOpenRouterModel(e.target.value)}
                                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-12 pr-5 py-4 text-sm font-mono text-white placeholder:text-zinc-700 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                disabled={!plan?.isPersonal && !plan?.isPro}
+                                                disabled={!isLicensed}
                                             />
                                         </div>
                                         <p className="text-[10px] text-zinc-600 leading-relaxed px-1 mt-1">
                                             Common: <code className="text-zinc-400">anthropic/claude-sonnet-4.6</code>, <code className="text-zinc-400">google/gemini-2.0-flash-001</code>
                                         </p>
-                                        {!plan?.isPersonal && !plan?.isPro && (
+                                        {!isLicensed && (
                                             <p className="text-[10px] text-yellow-600/70 leading-relaxed px-1 font-medium">
                                                 Upgrade to Personal or Pro to use custom models.
                                             </p>
@@ -367,7 +367,7 @@ export default function Settings() {
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between px-1">
                                             <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">AI Base URL / Provider</label>
-                                            {!plan?.isPro && (
+                                            {!isPro && (
                                                 <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Pro Only</span>
                                             )}
                                         </div>
@@ -379,13 +379,13 @@ export default function Settings() {
                                                 value={aiBaseUrl}
                                                 onChange={(e) => setAiBaseUrl(e.target.value)}
                                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-12 pr-5 py-4 text-sm font-mono text-white placeholder:text-zinc-700 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                disabled={!plan?.isPro}
+                                                disabled={!isPro}
                                             />
                                         </div>
                                         <p className="text-[10px] text-zinc-600 leading-relaxed px-1 mt-1">
                                             Default: <code className="text-zinc-400">https://openrouter.ai/api/v1</code>. Change this to use OpenAI, Anthropic, or local models.
                                         </p>
-                                        {!plan?.isPro && (
+                                        {!isPro && (
                                             <p className="text-[10px] text-yellow-600/70 leading-relaxed px-1 font-medium">
                                                 Upgrade to Pro to use custom providers.
                                             </p>
@@ -402,7 +402,7 @@ export default function Settings() {
                                 <h2 className="text-sm font-black text-white flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                                     Model Context Protocol (MCP)
-                                    {(!isVerified || !plan?.isPro) && (
+                                    {!isPro && (
                                         <span className="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[9px] font-black uppercase tracking-widest rounded border border-yellow-500/30">
                                             Pro Only
                                         </span>
@@ -414,7 +414,7 @@ export default function Settings() {
                             <div
                                 className={twMerge(
                                     "p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800 flex items-center justify-between group hover:border-purple-900/50 transition-all duration-300 cursor-pointer",
-                                    (!isVerified || !plan?.isPro) && "opacity-50 cursor-not-allowed pointer-events-none"
+                                    !isPro && "opacity-50 cursor-not-allowed pointer-events-none"
                                 )}
                                 onClick={() => setMcpStdioEnabled(!mcpStdioEnabled)}
                             >
@@ -439,7 +439,7 @@ export default function Settings() {
                             <div
                                 className={twMerge(
                                     "p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800 flex items-center justify-between group hover:border-indigo-900/50 transition-all duration-300 cursor-pointer",
-                                    (!isVerified || !plan?.isPro) && "opacity-50 cursor-not-allowed pointer-events-none"
+                                    !isPro && "opacity-50 cursor-not-allowed pointer-events-none"
                                 )}
                                 onClick={() => setMcpHttpEnabled(!mcpHttpEnabled)}
                             >
@@ -537,7 +537,7 @@ export default function Settings() {
                                                         <div className="flex items-center gap-3">
                                                             <h3 className="text-sm font-black text-white tracking-tight uppercase">License Active</h3>
                                                             <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[9px] font-black uppercase tracking-widest rounded border border-green-500/30">
-                                                                {plan?.name || "Personal"}
+                                                                {plan.charAt(0).toUpperCase() + plan.slice(1)}
                                                             </span>
                                                             {isSyncing && (
                                                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-[0.2em] rounded animate-pulse">
@@ -596,7 +596,7 @@ export default function Settings() {
                                                     {licenseStatus === 'success' ? <FiCheckCircle size={14} /> : <FiXCircle size={14} />}
                                                     <div className="flex-1">
                                                         <span className="text-[11px] font-black uppercase tracking-wider">{licenseMessage}</span>
-                                                        {plan && <span className="ml-2 px-2 py-0.5 bg-zinc-900 rounded border border-current text-[9px] font-black uppercase tracking-widest">{plan.name}</span>}
+                                                        {isVerified && <span className="ml-2 px-2 py-0.5 bg-zinc-900 rounded border border-current text-[9px] font-black uppercase tracking-widest">{plan.charAt(0).toUpperCase() + plan.slice(1)}</span>}
                                                     </div>
                                                 </div>
                                             )}
