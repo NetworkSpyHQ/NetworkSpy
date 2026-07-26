@@ -24,7 +24,6 @@ export default function Layout() {
   useEffect(() => {
     setOs(platform());
     getPlan().then(plan => {
-      console.log("PLAN", plan)
     });
   }, []);
   const [isProDialogOpen, setIsProDialogOpen] = useState(false);
