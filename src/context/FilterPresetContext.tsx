@@ -78,6 +78,52 @@ const STANDARD_LIBRARY: PredefinedFilter[] = [
     isBuiltIn: true
   },
   {
+    id: "sl-xhr",
+    name: "XHR / Fetch",
+    description: "API calls (POST, PUT, PATCH, DELETE).",
+    filters: [
+      {
+        isGroup: true, id: "sl-x-g", enabled: true, logic: "OR", children: [
+          { isGroup: false, id: "sl-x-1", enabled: true, type: FilterTypes.METHOD, operator: FilterOperators.EQUALS, value: "POST" },
+          { isGroup: false, id: "sl-x-2", enabled: true, type: FilterTypes.METHOD, operator: FilterOperators.EQUALS, value: "PUT" },
+          { isGroup: false, id: "sl-x-3", enabled: true, type: FilterTypes.METHOD, operator: FilterOperators.EQUALS, value: "PATCH" },
+          { isGroup: false, id: "sl-x-4", enabled: true, type: FilterTypes.METHOD, operator: FilterOperators.EQUALS, value: "DELETE" },
+        ]
+      }
+    ],
+    isBuiltIn: true
+  },
+  {
+    id: "sl-fonts",
+    name: "Fonts",
+    description: "Font files (woff, woff2, ttf, otf).",
+    filters: [
+      {
+        isGroup: true, id: "sl-fn-g", enabled: true, logic: "OR", children: [
+          { isGroup: false, id: "sl-fn-1", enabled: true, type: FilterTypes.URL, operator: FilterOperators.ENDS_WITH, value: ".woff" },
+          { isGroup: false, id: "sl-fn-2", enabled: true, type: FilterTypes.URL, operator: FilterOperators.ENDS_WITH, value: ".woff2" },
+          { isGroup: false, id: "sl-fn-3", enabled: true, type: FilterTypes.URL, operator: FilterOperators.ENDS_WITH, value: ".ttf" },
+          { isGroup: false, id: "sl-fn-4", enabled: true, type: FilterTypes.URL, operator: FilterOperators.ENDS_WITH, value: ".otf" },
+        ]
+      }
+    ],
+    isBuiltIn: true
+  },
+  {
+    id: "sl-ws",
+    name: "WebSocket",
+    description: "WebSocket connections.",
+    filters: [
+      {
+        isGroup: true, id: "sl-ws-g", enabled: true, logic: "OR", children: [
+          { isGroup: false, id: "sl-ws-1", enabled: true, type: FilterTypes.URL, operator: FilterOperators.STARTS_WITH, value: "ws://" },
+          { isGroup: false, id: "sl-ws-2", enabled: true, type: FilterTypes.URL, operator: FilterOperators.STARTS_WITH, value: "wss://" },
+        ]
+      }
+    ],
+    isBuiltIn: true
+  },
+  {
     id: "sl-errors",
     name: "4xx & 5xx Errors",
     description: "Captured failures and error status codes.",

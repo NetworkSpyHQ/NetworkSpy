@@ -412,14 +412,14 @@ export const FilterBar = () => {
         <div className="flex items-center px-2 space-x-1 border-r border-zinc-800 h-full shrink-0">
           <button
             onClick={() => addRule(null)}
-            className='btn btn-xs bg-zinc-800/50 border-zinc-800/50 rounded text-zinc-400 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all duration-200 h-6 min-h-0 text-[10px] whitespace-nowrap'
+            className='btn btn-xs bg-zinc-800/50 border-zinc-800/50 rounded text-zinc-400 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all duration-200 h-6 min-h-0 px-3 text-[10px] whitespace-nowrap'
           >
             + Rule
           </button>
 
           <button
             onClick={() => addGroup(null)}
-            className='btn btn-xs bg-zinc-800/50 border-zinc-800/50 rounded text-amber-500 hover:bg-amber-600 hover:text-black hover:border-amber-500 transition-all duration-200 h-6 min-h-0 text-[10px] whitespace-nowrap'
+            className='btn btn-xs bg-zinc-800/50 border-zinc-800/50 rounded text-amber-500 hover:bg-amber-600 hover:text-black hover:border-amber-500 transition-all duration-200 h-6 min-h-0 px-3 text-[10px] whitespace-nowrap'
           >
             + Group
           </button>
