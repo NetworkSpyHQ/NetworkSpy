@@ -136,6 +136,8 @@ export const CustomViewerMode: React.FC<CustomViewerModeProps> = ({ viewerId }) 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 transition-all font-medium"
+                                autoComplete="off"
+                                spellCheck={false}
                             />
 
                             {searchTerm && (

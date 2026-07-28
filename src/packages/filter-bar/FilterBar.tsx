@@ -404,6 +404,8 @@ export const FilterBar = () => {
             className="bg-transparent border-none outline-none text-[11px] text-zinc-300 ml-2 px-1 w-20 focus:w-32 transition-all duration-300"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
           />
         </div>
 

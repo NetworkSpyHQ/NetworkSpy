@@ -209,6 +209,8 @@ export const BottomPaneOptions = () => {
           className="bg-transparent border-none outline-none text-[11px] text-zinc-300 ml-2 w-24 focus:w-40 transition-all duration-300"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
         />
       </div>
 
