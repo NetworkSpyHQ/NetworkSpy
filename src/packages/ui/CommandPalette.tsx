@@ -6,7 +6,7 @@ import { useAtom } from 'jotai';
 import { commandPaletteOpenAtom } from '@src/utils/trafficAtoms';
 import { useAppProvider } from '../app-env';
 import { useSettingsContext } from '@src/context/SettingsProvider';
-import { FiSearch, FiCommand, FiTarget, FiMapPin, FiRefreshCw, FiGrid, FiCode, FiTag, FiGitBranch, FiTerminal, FiSliders, FiSave, FiSettings, FiChrome } from 'react-icons/fi';
+import { FiSearch, FiCommand, FiTarget, FiMapPin, FiRefreshCw, FiGrid, FiCode, FiTag, FiGitBranch, FiTerminal, FiSliders, FiSave, FiSettings, FiChrome, FiLayers } from 'react-icons/fi';
 import { BsPinAngleFill } from 'react-icons/bs';
 
 interface BrowserInfo {
@@ -203,6 +203,14 @@ export const CommandPalette: React.FC = () => {
       icon: <FiCode size={16} />,
       keywords: ['composer', 'request', 'http', 'api', 'craft', 'send', 'postman'],
       action: () => { close(); openNewWindow('composer', 'Composer'); },
+    },
+    {
+      id: 'viewer-builder',
+      label: 'Open Viewer Builder',
+      description: 'Build custom traffic viewers',
+      icon: <FiLayers size={16} />,
+      keywords: ['viewer', 'builder', 'custom', 'visualizer', 'inspect'],
+      action: () => { close(); navigate('/viewers'); },
     },
     {
       id: 'settings',
